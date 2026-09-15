@@ -16,3 +16,6 @@ Docker/logs/
 site/
 *.log
 .DS_Store
+# CI workflow disabled while pushing without "workflow" token scope.
+# Re-enable: git rm --cached .github/workflows/ci.yml && git add .github/workflows/ci.yml
+.github/workflows/ci.yml
