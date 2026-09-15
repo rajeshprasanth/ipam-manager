@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Networks | IPAM Manager{% endblock %}
+{% block topbar_title %}Networks{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Network Inventory</h1>
+        <p class="page-sub text-muted mb-0">{{ items|length }} subnet(s) defined.</p>
+    </div>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('networks_add') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Network</a>
+    {% endif %}
+</div>
+
+{% if items %}
+<div class="row g-3">
+    {% for network in items %}
+    <div class="col-xl-4 col-md-6">
+        <div class="card network-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="mb-0">{{ network.network_name }}</h6>
+                        <code class="code-ip">{{ network.network_range }}</code>
+                    </div>
+                    {% if current_user.is_admin %}
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('networks_edit', item_id=network.id) }}" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <form method="POST" action="{{ url_for('networks_delete', item_id=network.id) }}" data-confirm="Delete network {{ network.network_name }}?">
+                            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="network-meta">
+                    <span class="meta-item"><i class="bi bi-subtract me-1"></i>{{ network.subnet_mask or network.cidr }}</span>
+                    {% if network.vlan_id %}<span class="vlan-pill"><i class="bi bi-tag"></i> VLAN {{ network.vlan_id }}</span>{% endif %}
+                    {% if network.network_role %}<span class="role-pill role-{{ network.network_role|lower }}">{{ network.network_role }}</span>{% endif %}
+                </div>
+                <div class="network-foot">
+                    {% if network.location %}<span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ network.location }}</span>{% endif %}
+                    <span class="text-muted small ms-auto">{{ network.created_at.strftime('%Y-%m-%d') if network.created_at else '' }}</span>
+                </div>
+                {% if network.description %}<p class="text-muted small mt-2 mb-0">{{ network.description[:80] }}{% if network.description|length > 80 %}...{% endif %}</p>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <i class="bi bi-diagram-3"></i>
+        <p>No networks defined yet.</p>
+        {% if current_user.is_admin %}<a href="{{ url_for('networks_add') }}" class="btn btn-primary btn-sm">Add your first network</a>{% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,43 @@
+---
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ipam-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ipam
+      POSTGRES_PASSWORD: ipam
+      POSTGRES_DB: ipam
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ipam -d ipam"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: ipam-manager
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ipam:ipam@db:5432/ipam
+      SECRET_KEY: change-this-in-production-generate-a-long-random-value
+      AUTO_CREATE_TABLES: "false"
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: lax
+      ACCESS_TOKEN_EXPIRE_MINUTES: 480
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  pgdata:

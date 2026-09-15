@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}IP Addresses | IPAM Manager{% endblock %}
+{% block topbar_title %}IP Addresses{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1 class="page-title">IP Address Inventory</h1>
+        <p class="page-sub text-muted mb-0">{{ total }} address(es) tracked across your network.</p>
+    </div>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('ip_addresses_add') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Add IP Address
+    </a>
+    {% endif %}
+</div>
+
+<div class="filter-bar card mb-4">
+    <div class="card-body py-3">
+        <form method="GET" action="{{ url_for('ip_addresses') }}" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1" for="search">Search</label>
+                <input type="text" class="form-control form-control-sm" id="search" name="search"
+                       placeholder="IP, hostname, FQDN, description..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1" for="status">Status</label>
+                <select class="form-select form-select-sm" id="status" name="status">
+                    <option value="">All statuses</option>
+                    {% for s in ['Available', 'Reserved', 'Active', 'Deprecated'] %}
+                    <option value="{{ s }}" {{ 'selected' if status == s }}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1" for="device_type">Device Type</label>
+                <select class="form-select form-select-sm" id="device_type" name="device_type">
+                    <option value="">All device types</option>
+                    {% for t in ['Server', 'Router', 'Switch', 'Firewall', 'IoT', 'Workstation', 'Printer', 'Camera', 'Access Point', 'Storage', 'Other'] %}
+                    <option value="{{ t }}" {{ 'selected' if device_type == t }}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1" for="vlan_id">VLAN ID</label>
+                <input type="number" class="form-control form-control-sm" id="vlan_id" name="vlan_id"
+                       placeholder="e.g. 10" value="{{ vlan_id }}">
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Addresses <span class="badge">{{ total }}</span></h5>
+    </div>
+    <div class="card-body p-0">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>IP Address</th>
+                        <th>Hostname</th>
+                        <th>Status</th>
+                        <th>Device Type</th>
+                        <th>VLAN</th>
+                        <th>Assigned To</th>
+                        <th>Updated</th>
+                        {% if current_user.is_admin %}<th class="text-end">Actions</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ip in items %}
+                    <tr>
+                        <td><code class="code-ip">{{ ip.ip_address }}/{{ ip.subnet_prefix }}</code></td>
+                        <td>
+                            {{ ip.hostname or '-' }}
+                            {% if ip.fqdn %}<br><small class="text-muted">{{ ip.fqdn }}</small>{% endif %}
+                        </td>
+                        <td><span class="status-badge status-{{ ip.status|lower }}">{{ ip.status }}</span></td>
+                        <td>{{ ip.device_type or '-' }}</td>
+                        <td>{% if ip.vlan_id %}<span class="vlan-pill">{{ ip.vlan_id }}</span>{% else %}-{% endif %}</td>
+                        <td>{{ ip.assigned_to or '-' }}</td>
+                        <td class="text-muted">{{ ip.updated_at.strftime('%Y-%m-%d %H:%M') if ip.updated_at else '-' }}</td>
+                        {% if current_user.is_admin %}
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('ip_addresses_edit', item_id=ip.id) }}" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <form method="POST" action="{{ url_for('ip_addresses_delete', item_id=ip.id) }}" data-confirm="Delete {{ ip.ip_address }}? This records an audit entry.">
+                                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if pages > 1 %}
+        <nav class="card-footer">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page > 1 %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, page=page-1) }}">Previous</a></li>
+                {% endif %}
+                {% for p in range(1, pages + 1) %}
+                    {% if p == page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                    {% elif p <= 3 or p > pages - 3 or (p >= page - 2 and p <= page + 2) %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, page=p) }}">{{ p }}</a></li>
+                    {% elif p == 4 or p == pages - 3 %}
+                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page < pages %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, page=page+1) }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>No IP addresses match your filters.</p>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('ip_addresses_add') }}" class="btn btn-primary btn-sm">Add an IP address</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% import "partials/_fields.html" as f %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} IP Address | IPAM Manager{% endblock %}
+{% block topbar_title %}{{ 'Edit' if mode == 'edit' else 'Add' }} IP Address{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1 class="page-title">{{ 'Edit' if mode == 'edit' else 'Add' }} IP Address
+            {% if mode == 'edit' and item %}<code class="code-ip ms-2">{{ item.ip_address }}/{{ item.subnet_prefix }}</code>{% endif %}
+        </h1>
+        <p class="page-sub text-muted mb-0">
+            {% if mode == 'edit' %}Update the details of this address. Changes are recorded in the audit history.
+            {% else %}Register a new IP address in the inventory.{% endif %}
+        </p>
+    </div>
+    <a href="{{ url_for('ip_addresses') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+</div>
+
+{{ f.errors(errors) }}
+
+<form method="POST" action="{{ url_for('ip_addresses_edit_post', item_id=item.id) if mode == 'edit' else url_for('ip_addresses_add_post') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-router me-2"></i>Address Details</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {{ f.text('ip_address', 'IP Address', form_data.get('ip_address'), 'e.g. 192.168.1.10', true, 'col-md-6') }}
+                        {{ f.number('subnet_prefix', 'Subnet Prefix', form_data.get('subnet_prefix'), '/24', true, 'col-md-3', 1, 128) }}
+                        {{ f.select('status', 'Status', [('Available','Available'), ('Reserved','Reserved'), ('Active','Active'), ('Deprecated','Deprecated')], form_data.get('status', 'Available'), 'col-md-3', true) }}
+                        {{ f.select('allocation_type', 'Allocation', [('Static','Static'), ('DHCP','DHCP')], form_data.get('allocation_type', 'Static'), 'col-md-3') }}
+                        {{ f.text('hostname', 'Hostname', form_data.get('hostname'), 'web-srv-01', false, 'col-md-4') }}
+                        {{ f.text('fqdn', 'FQDN', form_data.get('fqdn'), 'web-srv-01.example.com', false, 'col-md-5') }}
+                        {{ f.text('assigned_to', 'Assigned To', form_data.get('assigned_to'), 'Team / Person', false, 'col-md-4') }}
+                        {{ f.text('device_type', 'Device Type', form_data.get('device_type'), 'Server', false, 'col-md-3') }}
+                        {{ f.text('interface_name', 'Interface', form_data.get('interface_name'), 'eth0', false, 'col-md-3') }}
+                        {{ f.text('vlan_id', 'VLAN ID', form_data.get('vlan_id'), '1-4094', false, 'col-md-3') }}
+                        {{ f.text('network_segment', 'Network Segment', form_data.get('network_segment'), 'Seg-10', false, 'col-md-3') }}
+                        {{ f.text('mac_address', 'MAC Address', form_data.get('mac_address'), 'AA:BB:CC:DD:EE:FF', false, 'col-md-4') }}
+                        {{ f.text('gateway', 'Gateway', form_data.get('gateway'), '192.168.1.1', false, 'col-md-4') }}
+                        {{ f.datetime_local('assigned_date', 'Assigned Date', form_data.get('assigned_date')|dt if form_data.get('assigned_date') else '') }}
+                        {{ f.datetime_local('expiry_date', 'Expiry Date', form_data.get('expiry_date')|dt if form_data.get('expiry_date') else '') }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-people me-2"></i>Ownership</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {{ f.text('owner', 'Owner', form_data.get('owner'), 'Finance', false, 'col-md-4') }}
+                        {{ f.text('responsible_person', 'Responsible Person', form_data.get('responsible_person'), 'Jane Doe', false, 'col-md-4') }}
+                        {{ f.text('department', 'Department', form_data.get('department'), 'IT Ops', false, 'col-md-4') }}
+                        {{ f.text('team', 'Team', form_data.get('team'), 'Network', false, 'col-md-4') }}
+                        {{ f.text('role', 'Role / Purpose', form_data.get('role'), 'DNS Gateway', false, 'col-md-4') }}
+                        {{ f.text('purpose', 'Purpose', form_data.get('purpose'), 'Primary DNS', false, 'col-md-4') }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-sticky me-2"></i>Notes &amp; Metadata</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {{ f.textarea('description', 'Description', form_data.get('description'), 3) }}
+                        {{ f.textarea('notes', 'Notes', form_data.get('notes'), 3) }}
+                        {{ f.text('tags', 'Tags', form_data.get('tags'), 'production, dmz', false, 'col-md-4') }}
+                        {{ f.text('security_group', 'Security Group', form_data.get('security_group'), 'SG-web', false, 'col-md-4') }}
+                        {{ f.text('acl_applied', 'ACL Applied', form_data.get('acl_applied'), 'ACL-100', false, 'col-md-4') }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Save Changes' if mode == 'edit' else 'Add IP Address' }}</button>
+                <a href="{{ url_for('ip_addresses') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-header"><h6 class="card-title mb-0"><i class="bi bi-lightbulb me-2"></i>Helpful tips</h6></div>
+                <ul class="list-group list-group-flush help-list">
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Use CIDR-style prefix (e.g. <code>24</code> = <code>/24</code>).</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> MAC format: <code>AA:BB:CC:DD:EE:FF</code>.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Set <em>Reserved</em> to hold an IP without assignment.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> VLAN IDs are limited to 1&ndash;4094.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

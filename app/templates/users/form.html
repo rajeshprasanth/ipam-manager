@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% import "partials/_fields.html" as f %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} User | IPAM Manager{% endblock %}
+{% block topbar_title %}{{ 'Edit' if mode == 'edit' else 'Add' }} User{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1 class="page-title">{{ 'Edit' if mode == 'edit' else 'Add' }} User
+            {% if mode == 'edit' and item %}<span class="text-muted fs-5">@{{ item.username }}</span>{% endif %}
+        </h1>
+        <p class="page-sub text-muted mb-0">Configure an account and its role-based access level.</p>
+    </div>
+    <a href="{{ url_for('users') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+</div>
+
+{{ f.errors(errors) }}
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-person-gear me-2"></i>Account details</h5></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('users_edit_post', user_id=item.id) if mode == 'edit' else url_for('users_add_post') }}">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                    <div class="row g-3">
+                        {{ f.text('username', 'Username', form_data.get('username'), 'jdoe', true, 'col-md-6', 'Min 3 characters; used to sign in.') }}
+                        {{ f.email('email', 'Email', form_data.get('email'), 'jane@example.com', true, 'col-md-6') }}
+                        {{ f.text('full_name', 'Full Name', form_data.get('full_name'), 'Jane Doe', false, 'col-md-6') }}
+                        {{ f.select('role', 'Role', [('viewer','Viewer — read-only'), ('admin','Administrator — full access')], form_data.get('role', 'viewer'), 'col-md-6', true) }}
+                        {% if mode == 'add' %}
+                        {{ f.password('password', 'Password', true, 'col-md-12', 'At least 8 characters.', 'Minimum 8 characters') }}
+                        {% else %}
+                        <div class="col-12">
+                            <div class="alert alert-light border mb-0 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-key me-2"></i>Reset this user's password from the account list.
+                                </div>
+                                <span class="text-muted small">Password reset is available on the user list page.</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Save Changes' if mode == 'edit' else 'Create User' }}</button>
+                        <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="card">
+            <div class="card-header"><h6 class="card-title mb-0"><i class="bi bi-shield-lock me-2"></i>Role-based access</h6></div>
+            <div class="card-body">
+                <div class="role-card mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="role-icon badge-admin"><i class="bi bi-shield-check"></i></span>
+                        <div>
+                            <strong>Administrator</strong>
+                            <p class="text-muted small mb-0">Full CRUD on IPs, networks and devices, plus user management and password resets.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="role-card">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="role-icon badge-viewer"><i class="bi bi-eye"></i></span>
+                        <div>
+                            <strong>Viewer</strong>
+                            <p class="text-muted small mb-0">Read-only access to the dashboard, inventory lists and REST API.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

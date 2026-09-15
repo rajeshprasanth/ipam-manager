@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% import "partials/_fields.html" as f %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Network | IPAM Manager{% endblock %}
+{% block topbar_title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Network{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1 class="page-title">{{ 'Edit' if mode == 'edit' else 'Add' }} Network
+            {% if mode == 'edit' and item %}<code class="code-ip ms-2">{{ item.network_range }}</code>{% endif %}</h1>
+        <p class="page-sub text-muted mb-0">Define a subnet and its operational attributes.</p>
+    </div>
+    <a href="{{ url_for('networks') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+</div>
+
+{{ f.errors(errors) }}
+
+<form method="POST" action="{{ url_for('networks_edit_post', item_id=item.id) if mode == 'edit' else url_for('networks_add_post') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-diagram-3 me-2"></i>Network Details</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {{ f.text('network_name', 'Network Name', form_data.get('network_name'), 'Corporate LAN', true, 'col-md-6') }}
+                        {{ f.text('network_range', 'Network Range', form_data.get('network_range'), '192.168.1.0/24', true, 'col-md-6', 'Full range with CIDR.') }}
+                        {{ f.text('cidr', 'CIDR', form_data.get('cidr'), '192.168.1.0/24', true, 'col-md-4') }}
+                        {{ f.text('subnet_mask', 'Subnet Mask', form_data.get('subnet_mask'), '255.255.255.0', false, 'col-md-4') }}
+                        {{ f.text('broadcast_address', 'Broadcast Address', form_data.get('broadcast_address'), '192.168.1.255', false, 'col-md-4') }}
+                        {{ f.select('network_role', 'Role', [('', 'Select role'), ('Management','Management'), ('Production','Production'), ('DMZ','DMZ'), ('Guest','Guest'), ('IoT','IoT'), ('Development','Development'), ('Testing','Testing'), ('Backup','Backup')], form_data.get('network_role', ''), 'col-md-4') }}
+                        {{ f.number('vlan_id', 'VLAN ID', form_data.get('vlan_id'), '1-4094', false, 'col-md-4', 1, 4094) }}
+                        {{ f.text('location', 'Location', form_data.get('location'), 'Rack A1, DC-East', false, 'col-md-4') }}
+                        {{ f.textarea('description', 'Description', form_data.get('description'), 3) }}
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Save Changes' if mode == 'edit' else 'Add Network' }}</button>
+                <a href="{{ url_for('networks') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-header"><h6 class="card-title mb-0"><i class="bi bi-lightbulb me-2"></i>Helpful tips</h6></div>
+                <ul class="list-group list-group-flush help-list">
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Use full CIDR notation, e.g. <code>192.168.1.0/24</code>.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> VLAN IDs range 1&ndash;4094.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Pick a role to categorize network purpose.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Document the physical location for reference.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

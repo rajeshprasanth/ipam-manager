@@ -1,0 +1,204 @@
+{% extends "public_base.html" %}
+{% block title %}Enterprise IP Address Management | {{ app_name }}{% endblock %}
+{% block content %}
+
+<!-- Nav -->
+<nav class="public-nav sticky-top" id="landingNav">
+    <div class="container-lg d-flex align-items-center justify-content-between py-3">
+        <a class="public-brand" href="/">
+            <span class="brand-icon"><i class="bi bi-hdd-network-fill"></i></span>
+            <span class="brand-text">{{ app_name }}</span>
+        </a>
+        <div class="d-none d-md-flex gap-4 public-nav-links">
+            <a href="#features">Features</a>
+            <a href="#security">Security</a>
+            <a href="#api">API</a>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm px-3">Sign in</a>
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm px-3">Launch Portal</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+    <div class="container-lg">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <span class="hero-eyebrow"><i class="bi bi-stars me-1"></i> Enterprise-ready platform</span>
+                <h1 class="hero-title">Command your entire<br>IP infrastructure.</h1>
+                <p class="hero-subtitle">
+                    A production-grade IP Address Management platform with role-based access control,
+                    complete subnet &amp; device inventory, full audit history, and a REST API —
+                    built for network operations teams.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mt-4">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-rocket-takeoff me-2"></i>Launch Portal
+                    </a>
+                    <a href="#features" class="btn btn-outline-light btn-lg px-4">Explore features</a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-preview">
+                    <div class="preview-window">
+                        <div class="preview-titlebar"><span></span><span></span><span></span></div>
+                        <div class="preview-body">
+                            <div class="preview-stat">
+                                <div class="ps-label">Total IPs</div>
+                                <div class="ps-value">24,576</div>
+                                <div class="ps-bar"><span style="width:72%"></span></div>
+                            </div>
+                            <div class="preview-row">
+                                <div class="preview-bar"><i class="bi bi-circle-fill text-success"></i><div><small>Available</small><b>18,400</b></div></div>
+                                <div class="preview-bar"><i class="bi bi-circle-fill text-warning"></i><div><small>Active</small><b>4,289</b></div></div>
+                                <div class="preview-bar"><i class="bi bi-circle-fill text-info"></i><div><small>Reserved</small><b>1,887</b></div></div>
+                            </div>
+                            <ul class="preview-table">
+                                <li><code>10.24.0.10</code><span class="badge-available">Available</span></li>
+                                <li><code>10.24.0.11</code><span class="badge-active">Active</span></li>
+                                <li><code>10.24.0.12</code><span class="badge-active">Active</span></li>
+                                <li><code>10.24.0.13</code><span class="badge-reserved">Reserved</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Stats strip -->
+<section class="stats-strip">
+    <div class="container-lg">
+        <div class="row g-4 text-center">
+            <div class="col-md-3">
+                <div class="stat-num">100%</div>
+                <div class="stat-label">IP lifecycle control</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-num">RBAC</div>
+                <div class="stat-label">Admin &amp; read-only roles</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-num">REST</div>
+                <div class="stat-label">First-class API</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-num">Postgres</div>
+                <div class="stat-label">Relational backbone</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="section" id="features">
+    <div class="container-lg">
+        <div class="section-head text-center">
+            <h2>Everything your network team needs</h2>
+            <p>From a single address to an entire datacenter, manage it all with confidence.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-router-fill"></i></div>
+                    <h5>IP Address Inventory</h5>
+                    <p>Track IPv4/IPv6 addresses with status, VLAN, MAC, hostname, allocation type and full ownership metadata.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-diagram-3-fill"></i></div>
+                    <h5>Subnet Management</h5>
+                    <p>Organize networks by CIDR, role and location with broadcast addresses and VLAN association.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-pc-display"></i></div>
+                    <h5>Device Tracking</h5>
+                    <p>Maintain a hardware inventory with vendor, model, OS, firmware, serial numbers and rack locations.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-shield-lock-fill"></i></div>
+                    <h5>Role-Based Access</h5>
+                    <p>Administrators manage data and users; view-only members get safe, read-only access. Enforced server-side.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
+                    <h5>Audit History</h5>
+                    <p>Every IP change is recorded with before/after values, timestamps and the acting user.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-code-square"></i></div>
+                    <h5>REST API</h5>
+                    <p>Automate workflows through a documented, token-authenticated API for IPs, networks, devices and users.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Security -->
+<section class="section section-dark" id="security">
+    <div class="container-lg">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <span class="hero-eyebrow"><i class="bi bi-shield-check me-1"></i> Secure by default</span>
+                <h2 class="dark-title">Access control you can trust.</h2>
+                <ul class="security-list">
+                    <li><i class="bi bi-check-circle-fill"></i> Bcrypt password hashing and HTTP-only JWT session cookies</li>
+                    <li><i class="bi bi-check-circle-fill"></i> CSRF protection on every mutating form</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Admin-only user management with self-lock-out protection</li>
+                    <li><i class="bi bi-check-circle-fill"></i> PostgreSQL persistence with Alembic migrations</li>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <div class="code-card">
+                    <div class="code-head">RBAC enforcement</div>
+                    <pre><code>Depends(get_current_user_web)
+Depends(require_admin_web)
+
+# viewer   -> read-only portal pages
+# admin    -> full CRUD + user management
+
+if user.is_admin:
+    manage_users(), mutate(ip), delete(...)</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+    <div class="container-lg text-center">
+        <h2>Ready to take control of your IP space?</h2>
+        <p class="mb-4">Spin up the platform and provision your first administrator in minutes.</p>
+        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-5">
+            <i class="bi bi-arrow-right-circle me-2"></i>Open the Portal
+        </a>
+    </div>
+</section>
+
+<footer class="public-footer">
+    <div class="container-lg d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <span><i class="bi bi-hdd-network-fill me-1"></i> {{ app_name }} &middot; Enterprise IP Address Management</span>
+        <span>
+            <a href="https://github.com/rajeshprasanth/ipam-manager" target="_blank" rel="noopener">
+                <i class="bi bi-github me-1"></i>GitHub Project
+            </a>
+        </span>
+        <span class="text-muted">{{ copyright }} &middot; {{ app_owner }}</span>
+    </div>
+</footer>
+
+{% endblock %}

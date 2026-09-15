@@ -1,0 +1,42 @@
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon"><i class="bi bi-hdd-network-fill"></i></span>
+        <span class="brand-text">{{ app_name }}</span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">Overview</div>
+        <a href="{{ url_for('dashboard') }}" class="nav-item {{ 'active' if active == 'dashboard' }}">
+            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('ip_addresses') }}" class="nav-item {{ 'active' if active == 'ip_addresses' }}">
+            <i class="bi bi-router"></i><span>IP Addresses</span>
+        </a>
+        <a href="{{ url_for('networks') }}" class="nav-item {{ 'active' if active == 'networks' }}">
+            <i class="bi bi-diagram-3"></i><span>Networks</span>
+        </a>
+        <a href="{{ url_for('devices') }}" class="nav-item {{ 'active' if active == 'devices' }}">
+            <i class="bi bi-pc-display"></i><span>Devices</span>
+        </a>
+
+        {% if current_user.is_admin %}
+        <div class="nav-section">Administration</div>
+        <a href="{{ url_for('users') }}" class="nav-item {{ 'active' if active == 'users' }}">
+            <i class="bi bi-people-fill"></i><span>User Management</span>
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-chip">
+            <div class="avatar">{{ (current_user.username[:1] or 'U')|upper }}</div>
+            <div class="user-meta">
+                <div class="user-name">{{ current_user.full_name or current_user.username }}</div>
+                <span class="role-badge {{ 'badge-admin' if current_user.is_admin else 'badge-viewer' }}">
+                    <i class="bi bi-shield-check me-1"></i>{{ current_user.role|capitalize }}
+                </span>
+            </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout-link"><i class="bi bi-box-arrow-right"></i> Sign out</a>
+    </div>
+</aside>

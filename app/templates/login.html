@@ -1,0 +1,55 @@
+{% extends "public_base.html" %}
+{% block title %}Sign in | {{ app_name }}{% endblock %}
+{% block content %}
+<div class="login-wrap">
+    <div class="login-brand">
+        <span class="brand-icon"><i class="bi bi-hdd-network-fill"></i></span>
+        <span class="brand-text">{{ app_name }}</span>
+    </div>
+    <div class="login-card">
+        <div class="login-card-head">
+            <h4 class="mb-1">Welcome back</h4>
+            <p class="text-muted mb-0">Sign in to access the IP management portal</p>
+        </div>
+        {% if oauth_providers %}
+        <div class="oauth-buttons">
+            {% for p in oauth_providers %}
+            <a href="{{ url_for('oauth_login_' ~ p.key) }}" class="btn btn-outline-secondary w-100 btn-lg">
+                <i class="bi {{ p.icon }} me-2"></i>Continue with {{ p.label }}
+            </a>
+            {% endfor %}
+        </div>
+        <div class="divider"><span>or sign in with your local account</span></div>
+        {% endif %}
+        <form method="POST" action="{{ url_for('login_submit') }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" id="username" name="username" required autofocus
+                           placeholder="Enter your username" autocomplete="username">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password" required
+                           placeholder="Enter your password" autocomplete="current-password">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Sign in
+            </button>
+        </form>
+    </div>
+    <p class="login-footer text-muted">
+        <a href="/">Back to homepage</a> &middot;
+        <a href="https://github.com/rajeshprasanth/ipam-manager" target="_blank" rel="noopener">
+            <i class="bi bi-github me-1"></i>GitHub Project
+        </a> &middot;
+        {{ copyright }} &middot; {{ app_owner }}
+    </p>
+</div>
+{% endblock %}

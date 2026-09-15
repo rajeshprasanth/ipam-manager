@@ -1,0 +1,38 @@
+# IPAM Manager
+
+**Enterprise IP Address Management (IPAM) — a production-grade FastAPI application.**
+
+IPAM Manager tracks IP addresses, networks, and devices with role-based access
+control (admin / view-only), a modern Bootstrap 5 web portal, and a REST API.
+
+## Features
+
+- **Web portal** with an enterprise landing page, dashboard with network/IP charts, and list/CRUD pages for IP addresses, networks, and devices.
+- **Role-based access control** — `admin` (full control) and `viewer` (read-only), enforced in both the web UI and the REST API.
+- **User management** — admins can create, edit, disable, and reset passwords for portal users from a dedicated page.
+- **REST API** — JSON API with JWT bearer authentication for scripts and integrations.
+- **Real database** — PostgreSQL in production (via SQLAlchemy + Alembic migrations); SQLite supported for local development and tests.
+- **Hardened auth** — bcrypt password hashing, HTTP-only JWT cookies, per-form CSRF protection, signed flash messages.
+
+## Tech stack
+
+| Component  | Choice                                   |
+|------------|------------------------------------------|
+| Framework  | FastAPI                                  |
+| Templates  | Jinja2 + Bootstrap 5                     |
+| ORM        | SQLAlchemy 2.x                           |
+| Migrations | Alembic                                  |
+| Database   | PostgreSQL 16 (dev: SQLite)              |
+| Auth       | bcrypt + JWT (python-jose)               |
+| Server     | Uvicorn (dev) / Gunicorn + Uvicorn (prod)|
+
+## Documentation
+
+- [Getting Started](getting-started.md) — install, run, and create your first admin.
+- [Configuration](configuration.md) — environment variables.
+- [Database & Migrations](database.md) — models, Alembic, backups.
+- [Security & RBAC](security.md) — authentication, roles, CSRF.
+- [User Management](user-management.md) — managing administrator accounts.
+- [REST API](api.md) — endpoints reference.
+- [Deployment](deployment.md) — Docker Compose with PostgreSQL.
+- [Troubleshooting & FAQ](troubleshooting.md) — password recovery, common issues.

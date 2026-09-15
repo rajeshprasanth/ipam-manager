@@ -1,0 +1,71 @@
+{% macro text(name, label, value='', placeholder='', required=false, cls='col-md-6', hint='') %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
+    <input type="text" class="form-control" id="{{ name }}" name="{{ name }}"
+           value="{{ value or '' }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %}>
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro email(name, label, value='', placeholder='', required=false, cls='col-md-6', hint='') %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
+    <input type="email" class="form-control" id="{{ name }}" name="{{ name }}"
+           value="{{ value or '' }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %}>
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro password(name, label, required=false, cls='col-md-6', hint='', placeholder='') %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
+    <input type="password" class="form-control" id="{{ name }}" name="{{ name }}"
+           placeholder="{{ placeholder }}" {% if required %}required{% endif %} autocomplete="new-password">
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro number(name, label, value='', placeholder='', required=false, cls='col-md-4', min='', max='') %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
+    <input type="number" class="form-control" id="{{ name }}" name="{{ name }}"
+           value="{{ value or '' }}" placeholder="{{ placeholder }}" {% if min %}min="{{ min }}"{% endif %}
+           {% if max %}max="{{ max }}"{% endif %} {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro datetime_local(name, label, value='', cls='col-md-4') %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}</label>
+    <input type="datetime-local" class="form-control" id="{{ name }}" name="{{ name }}" value="{{ value or '' }}">
+</div>
+{% endmacro %}
+
+{% macro textarea(name, label, value='', rows=3, cls='col-12', required=false) %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}</label>
+    <textarea class="form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows }}" {% if required %}required{% endif %}>{{ value or '' }}</textarea>
+</div>
+{% endmacro %}
+
+{% macro select(name, label, options, value='', cls='col-md-4', required=false) %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
+    <select class="form-select" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+        {% for val, text in options %}
+        <option value="{{ val }}" {% if value == val %}selected{% endif %}>{{ text }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+{% macro errors(errors) %}
+    {% if errors %}
+    <div class="alert alert-danger fade show" role="alert">
+        <strong><i class="bi bi-x-octagon-fill me-1"></i> Please fix the following:</strong>
+        <ul class="mb-0 mt-1">
+            {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+{% endmacro %}

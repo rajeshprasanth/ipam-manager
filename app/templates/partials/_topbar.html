@@ -1,0 +1,27 @@
+<header class="topbar">
+    <button class="btn btn-icon d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav" aria-label="Toggle navigation">
+        <i class="bi bi-list"></i>
+    </button>
+    <div class="topbar-title">
+        {% block topbar_title %}{% endblock %}
+    </div>
+    <div class="topbar-actions">
+        <div class="topbar-user">
+            <i class="bi bi-person-circle"></i>
+            <span class="d-none d-md-inline">{{ current_user.username }}</span>
+        </div>
+    </div>
+</header>
+
+<div class="offcanvas offcanvas-start" tabindex="-1" id="mobileNav" style="width: 264px;">
+    <div class="offcanvas-body p-0" id="mobileNavBody"></div>
+</div>
+
+<script>
+(function () {
+    var body = document.getElementById("mobileNavBody");
+    if (body && document.querySelector(".sidebar")) {
+        body.innerHTML = document.querySelector(".sidebar").outerHTML;
+    }
+})();
+</script>

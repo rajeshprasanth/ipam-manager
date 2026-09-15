@@ -1,0 +1,60 @@
+site_name: IPAM Manager
+site_description: Enterprise IP Address Management — FastAPI, RBAC, PostgreSQL
+site_author: IPAM Manager Team
+repo_url: https://github.com/rajeshprasanth/ipam-manager
+repo_name: ipam-manager
+copyright: Copyright &copy; 2026. IPAM Manager Team.
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - tables
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rajeshprasanth/ipam-manager
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Database & Migrations: database.md
+  - Security & RBAC: security.md
+  - User Management: user-management.md
+  - REST API: api.md
+  - Deployment: deployment.md
+  - Troubleshooting & FAQ: troubleshooting.md

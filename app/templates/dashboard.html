@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | IPAM Manager{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub text-muted mb-0">Welcome back, {{ current_user.full_name or current_user.username }}. Here's what's happening in your IP space.</p>
+    </div>
+    {% if current_user.is_admin %}
+    <div class="d-none d-md-flex gap-2">
+        <a href="{{ url_for('networks_add') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Network</a>
+        <a href="{{ url_for('devices_add') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Device</a>
+        <a href="{{ url_for('ip_addresses_add') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>IP Address</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo"><i class="bi bi-router-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ counts.total }}</div>
+                <div class="stat-label">Total IPs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-green"><i class="bi bi-check2-circle"></i></div>
+            <div>
+                <div class="stat-value">{{ counts.available }}</div>
+                <div class="stat-label">Available</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-amber"><i class="bi bi-activity"></i></div>
+            <div>
+                <div class="stat-value">{{ counts.active }}</div>
+                <div class="stat-label">Active</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-rose"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+                <div class="stat-value">{{ counts.deprecated }}</div>
+                <div class="stat-label">Deprecated</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-pie-chart-fill me-2"></i>IP Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-wrap">
+                    <canvas id="statusChart" data-chart="{{ status_chart }}"></canvas>
+                </div>
+                <div class="row text-center mt-3 g-2">
+                    <div class="col-3"><div class="legend-dot bg-success"></div><small>Available<br><b>{{ counts.available }}</b></small></div>
+                    <div class="col-3"><div class="legend-dot bg-warning"></div><small>Active<br><b>{{ counts.active }}</b></small></div>
+                    <div class="col-3"><div class="legend-dot bg-info"></div><small>Reserved<br><b>{{ counts.reserved }}</b></small></div>
+                    <div class="col-3"><div class="legend-dot bg-danger"></div><small>Deprecated<br><b>{{ counts.deprecated }}</b></small></div>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Top Device Types</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-wrap">
+                    <canvas id="deviceChart" data-chart="{{ device_type_counts }}"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-clock-history me-2"></i>Recent IP Activity</h5>
+                <a href="{{ url_for('ip_addresses') }}" class="btn btn-sm btn-outline-primary">View all</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_ips %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr><th>IP Address</th><th>Hostname</th><th>Status</th><th>Device Type</th><th>Updated</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for ip in recent_ips %}
+                            <tr>
+                                <td><code class="code-ip">{{ ip.ip_address }}/{{ ip.subnet_prefix }}</code></td>
+                                <td>{{ ip.hostname or '-' }}{% if ip.fqdn %}<br><small class="text-muted">{{ ip.fqdn }}</small>{% endif %}</td>
+                                <td><span class="status-badge status-{{ ip.status|lower }}">{{ ip.status }}</span></td>
+                                <td>{{ ip.device_type or '-' }}</td>
+                                <td class="text-muted">{{ ip.updated_at.strftime('%Y-%m-%d %H:%M') if ip.updated_at else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>No IP addresses yet.</p>
+                    <a href="{{ url_for('ip_addresses_add') }}" class="btn btn-primary btn-sm">Add your first IP</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row g-4 mt-0">
+            <div class="col-md-4">
+                <div class="mini-stat card">
+                    <div class="mini-value">{{ total_networks }}</div>
+                    <div class="mini-label">Networks</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mini-stat card">
+                    <div class="mini-value">{{ total_devices }}</div>
+                    <div class="mini-label">Devices</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mini-stat card">
+                    <div class="mini-value">{{ utilization }}%</div>
+                    <div class="mini-label">Utilization</div>
+                    <div class="progress mt-2" style="height:6px;"><div class="progress-bar" style="width: {{ utilization }}%"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var statusData = JSON.parse(document.getElementById("statusChart").dataset.chart);
+    new Chart(document.getElementById("statusChart"), {
+        type: "doughnut",
+        data: {
+            labels: ["Available", "Active", "Reserved", "Deprecated"],
+            datasets: [{
+                data: [statusData.available, statusData.active, statusData.reserved, statusData.deprecated],
+                backgroundColor: ["#10b981", "#f59e0b", "#0ea5e9", "#ef4444"],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    var deviceData = JSON.parse(document.getElementById("deviceChart").dataset.chart);
+    new Chart(document.getElementById("deviceChart"), {
+        type: "bar",
+        data: {
+            labels: deviceData.map(function (d) { return d.label; }),
+            datasets: [{
+                label: "IPs",
+                data: deviceData.map(function (d) { return d.value; }),
+                backgroundColor: "#6366f1",
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+})();
+</script>
+{% endblock %}

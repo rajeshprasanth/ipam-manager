@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Devices | IPAM Manager{% endblock %}
+{% block topbar_title %}Devices{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Device Inventory</h1>
+        <p class="page-sub text-muted mb-0">{{ items|length }} device(s) registered.</p>
+    </div>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('devices_add') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Device</a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="card-title mb-0">Devices</h5></div>
+    <div class="card-body p-0">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Hostname</th>
+                        <th>Device</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Owner</th>
+                        <th>Location</th>
+                        {% if current_user.is_admin %}<th class="text-end">Actions</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in items %}
+                    <tr>
+                        <td>
+                            <strong>{{ device.hostname }}</strong>
+                            {% if device.fqdn %}<br><small class="text-muted">{{ device.fqdn }}</small>{% endif %}
+                        </td>
+                        <td>
+                            {% if device.vendor or device.device_model %}{{ device.vendor or '' }} {{ device.device_model or '' }}{% else %}-{% endif %}
+                            {% if device.operating_system %}<br><small class="text-muted">{{ device.operating_system }}</small>{% endif %}
+                        </td>
+                        <td>{{ device.role or '-' }}</td>
+                        <td><span class="status-badge status-{{ device.status|lower }}">{{ device.status }}</span></td>
+                        <td>{{ device.owner or '-' }}</td>
+                        <td>{{ device.location or '-' }}</td>
+                        {% if current_user.is_admin %}
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('devices_edit', item_id=device.id) }}" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <form method="POST" action="{{ url_for('devices_delete', item_id=device.id) }}" data-confirm="Delete device {{ device.hostname }}?">
+                                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-pc-display"></i>
+            <p>No devices registered.</p>
+            {% if current_user.is_admin %}<a href="{{ url_for('devices_add') }}" class="btn btn-primary btn-sm">Add your first device</a>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
