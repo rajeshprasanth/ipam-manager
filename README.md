@@ -8,6 +8,8 @@ multiple sign-in options.
 - **Project page:** <https://github.com/rajeshprasanth/ipam-manager>
 - Interactive API docs: `/api/docs` (OpenAPI / Swagger UI)
 
+![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
+
 ---
 
 ## Table of contents
@@ -87,11 +89,14 @@ ipam-manager/
 ├── alembic/            # database migrations (versions/0001_initial.py)
 ├── docs/               # MkDocs documentation source
 ├── tests/              # pytest suite (in-memory SQLite)
-├── Docker/             # docker-compose (postgres:16 + app)
-├── Dockerfile
+├── Docker/             # Dockerfile, entrypoint, docker-compose.yml (Docker/ = compose base dir)
+├── install.sh          # interactive installer + management menu (port 8076 app / 8000 docs)
+├── .dockerignore       # build context excludes (logs/, site/, .venv, .env, …)
 ├── mkdocs.yml
 ├── requirements.txt    # pinned runtime dependencies
 ├── requirements-dev.txt
+├── requirements-docs.txt  # mkdocs + mkdocs-material (for `./install.sh docs`)
+├── LICENSE             # GNU General Public License v3
 └── .env.example        # configuration template
 ```
 
@@ -100,19 +105,29 @@ ipam-manager/
 ### Prerequisites
 
 - Python **3.10+** (developed against 3.12/3.13/3.14)
-- (Optional, for production) PostgreSQL 16
+- Docker + Compose plugin (for the container install; optional for host installs)
+- `setpriv` (util-linux) — present on all Debian/Ubuntu/Fedora hosts and the slim Docker base image
 
 ### 1. Clone and install
+
+The fastest path is the interactive installer — it handles Docker Compose,
+host + PostgreSQL, or host + SQLite setups plus admin/migration/run tasks:
 
 ```bash
 git clone https://github.com/rajeshprasanth/ipam-manager.git
 cd ipam-manager
+./install.sh          # interactive menu
+```
 
+Or install manually:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate           # Windows: .venv\Scripts\activate
 
 pip install -r requirements.txt      # runtime deps
-pip install -r requirements-dev.txt  # + tests + docs
+pip install -r requirements-dev.txt  # + test tooling
+pip install -r requirements-docs.txt # + docs (mkdocs/material)
 ```
 
 ### 2. Configure
@@ -137,7 +152,14 @@ DATABASE_URL=postgresql+psycopg2://ipam:ipam@localhost:5432/ipam
 
 ### 3. Bootstrap the first administrator
 
-There is **no default account**. Create one:
+There is **no default account**. Create one via the installer (option `4` in
+the menu, or directly):
+
+```bash
+./install.sh admin
+```
+
+or manually:
 
 ```bash
 python -m app.scripts.create_admin \
@@ -146,18 +168,46 @@ python -m app.scripts.create_admin \
     --password "a-strong-password"
 ```
 
+In the Docker stack, run it inside the web container:
+
+```bash
+docker exec -it IPAM-Manager-Web python -m app.scripts.create_admin \
+    --username admin --email admin@example.com --password "a-strong-password"
+```
+
 ### 4. Run
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8076
 ```
 
 | URL                          | What you'll see                     |
 |------------------------------|-------------------------------------|
-| `http://localhost:8000/`      | Enterprise landing page            |
-| `http://localhost:8000/login` | Sign-in (local + optional OAuth)   |
-| `http://localhost:8000/dashboard` | Dashboard with stats         |
-| `http://localhost:8000/api/docs` | Interactive API documentation |
+| `http://localhost:8076/`      | Enterprise landing page            |
+| `http://localhost:8076/login` | Sign-in (local + optional OAuth)   |
+| `http://localhost:8076/dashboard` | Dashboard with stats         |
+| `http://localhost:8076/api/docs` | Interactive API documentation |
+
+### 5. Run detached (Docker or host)
+
+`./install.sh start` launches the app in the background and writes logs to
+`./logs` for **both** Docker and host installs:
+
+```bash
+./install.sh start     # detached (gunicorn + uvicorn workers, or compose up -d)
+./install.sh status    # where it runs, PID/container + log file paths
+./install.sh stop      # stop app / stack
+```
+
+| Source      | File(s)                                          |
+|-------------|--------------------------------------------------|
+| Host mode   | `logs/ipam-access.log`, `logs/ipam-app.log`      |
+| Docker app  | `logs/gunicorn-access.log`, `logs/gunicorn-error.log` |
+| PostgreSQL  | `logs/postgresql-YYYY-MM-DD_HHMMSS.log`          |
+
+Containers fix the `logs/` mount permissions themselves at startup and then
+drop back to an unprivileged user (`app` / `postgres`), so no manual `chmod`
+is needed — even when Compose created the directory.
 
 ## Configuration
 
@@ -174,7 +224,7 @@ All settings are read from environment variables or a `.env` file
 | `SECRET_KEY` | `change-me-in-production` | **Change in production.** Signs JWT, CSRF, and flash cookies. |
 | `ALGORITHM` | `HS256` | JWT signing algorithm. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `480` | Session/JWT lifetime (8 hours). |
-| `DATABASE_URL` | `postgresql+psycopg2://ipam:ipam@localhost:5432/ipam` | SQLAlchemy URL. |
+| `DATABASE_URL` | *(auto)* | SQLAlchemy URL. Unset ⇒ auto-detection: `db` container inside Docker, `localhost` on the host, credentials from `POSTGRES_*` (default `ipam`/`ipam`/`ipam`). |
 | `COOKIE_SECURE` | `false` | `true` over HTTPS so cookies are TLS-only. |
 | `COOKIE_SAMESITE` | `lax` | Cookie SameSite policy. |
 | `GOOGLE_CLIENT_ID` | *(empty)* | Enable "Continue with Google". |
@@ -183,6 +233,13 @@ All settings are read from environment variables or a `.env` file
 | `GITHUB_CLIENT_SECRET` | *(empty)* | GitHub OAuth secret (server-only). |
 | `OAUTH_BASE_URL` | *(empty)* | Public base URL for OAuth callbacks; defaults to the request `Host` header. |
 | `AUTO_CREATE_TABLES` | `true` | Create tables on startup (dev). Set `false` in production and use `alembic upgrade head`. |
+
+Installer-side settings (read by `./install.sh`, kept in `.env`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APP_PORT` | `8076` | Web UI / API port (asked interactively by the installer). |
+| `DOCS_PORT` | `8000` | MkDocs documentation port (asked interactively by the installer). |
 
 ## First administrator
 
@@ -325,14 +382,39 @@ The suite (23 tests) runs against an in-memory SQLite database with no external
 services. It covers portal auth & RBAC, API CRUD and role guards, CSRF, and the
 Google/GitHub OAuth flows (provider HTTP calls faked).
 
+## Logs
+
+All logs accumulate in the `logs/` directory (gitignored), regardless of how
+you run the app — for **both** Docker and local/host installs:
+
+| Installation | Files |
+| --- | --- |
+| Local (host), `./install.sh start` | `logs/ipam-access.log`, `logs/ipam-app.log` (gunicorn access + errors) |
+| Docker (compose) | `logs/gunicorn-access.log`, `logs/gunicorn-error.log`, `logs/postgresql-*.log` |
+
+The compose stack bind-mounts `./logs` into both containers; the `:Z` label
+handles SELinux-enforcing hosts (Fedora). At startup each container makes the
+mounted directory writable and then drops back to its unprivileged user, so
+even a `logs/` created root-owned by Compose works without manual `chmod`.
+Log rotation is handled by gunicorn/logrotate on the host and PostgreSQL's own
+`log_rotation_*` settings in the container.
+
 ## Documentation site
 
-Full MkDocs documentation lives in `docs/`:
+Full MkDocs documentation lives in `docs/`. The easiest way to host it
+locally is via the installer (uses `.venv`, no extra setup):
 
 ```bash
-pip install -r requirements-dev.txt
-mkdocs serve     # http://127.0.0.1:8000
-mkdocs build     # outputs static site/ directory
+./install.sh docs        # installs deps + serves at http://127.0.0.1:8000
+./install.sh docs-build  # build static site/ (host it with any static server)
+```
+
+Manually:
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve    # http://127.0.0.1:8000
+mkdocs build    # outputs static site/ directory
 ```
 
 ## Deployment
@@ -340,34 +422,47 @@ mkdocs build     # outputs static site/ directory
 ### Docker Compose (recommended)
 
 Brings up PostgreSQL 16 and the app (Gunicorn + Uvicorn workers, Alembic
-applied on boot):
+applied on boot). The compose file pins `POSTGRES_HOST=db` inside the `web`
+service, so the container always talks to the bundled database deterministically
+(no hostname guessing). On bare metal, leave `DATABASE_URL` unset to use
+`localhost` with the `POSTGRES_*` defaults; set it explicitly only to override
+with a remote/managed database:
 
 ```bash
 docker compose -f Docker/docker-compose.yml up -d --build
 ```
 
-- App: `http://localhost:8000`
-- Default DB in the compose stack: `ipam` / `ipam` (user/password/database)
+- App: `http://localhost:8076`
+- Default DB in the compose stack: `ipam` / `ipam` (user/password/database);
+  override with `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` in `.env`
+
+**Running the image standalone** (without the Compose `db` service): the app has
+no database to connect to, so you must point it somewhere — set `DATABASE_URL`
+(or `POSTGRES_HOST` + `POSTGRES_*`) in the container environment. Without it the
+default `localhost:5432` connection is refused (that is the error below):
 
 **Before first boot**, set a real `SECRET_KEY` (and optionally OAuth client
-credentials) in `Docker/docker-compose.yml`, then seed the admin:
+credentials) in a local `.env` file (see `.env.example`) or the compose
+service environment, then seed the admin:
 
 ```bash
-docker exec -it ipam-manager python -m app.scripts.create_admin \
+docker exec -it IPAM-Manager-Web python -m app.scripts.create_admin \
     --username admin --email admin@example.com --password "a-strong-password"
 ```
 
 ### Bare-metal / VM
 
 1. Create the PostgreSQL database and user.
-2. Copy `.env.example` → `.env`, set a real `SECRET_KEY` (and `DATABASE_URL`).
+2. Copy `.env.example` → `.env`, set a real `SECRET_KEY`. `DATABASE_URL` is
+   optional — leave it unset to use `localhost` with the `POSTGRES_*` defaults
+   (`ipam`/`ipam`/`ipam`), or set it to point at a remote/managed database.
 3. `pip install -r requirements.txt`
 4. `alembic upgrade head`
 5. `python -m app.scripts.create_admin ...`
 6. Serve with Gunicorn:
 
 ```bash
-gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000
+gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8076
 ```
 
 7. Terminate TLS at nginx/Caddy/Traefik and set `COOKIE_SECURE=true` plus
@@ -387,8 +482,8 @@ gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000
 | Social buttons missing | Set both the client id **and** secret for that provider, then restart. |
 | OAuth `redirect_uri_mismatch` | Register `<public-origin>/auth/callback/<provider>` exactly; set `OAUTH_BASE_URL` behind a proxy. |
 | OAuth user is not an admin | OAuth-provisioned accounts start as `viewer` — promote via **Users**. |
-| Port 8000 already in use | Stop the stale server or change the port: `uvicorn app.main:app --port 8001`. |
+| Port 8076 already in use | Stop the stale server or change the port: `uvicorn app.main:app --port 8077`. |
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 IPAM Manager Team.
+[GNU General Public License v3.0](LICENSE) — Copyright (c) 2026 IPAM Manager Team.

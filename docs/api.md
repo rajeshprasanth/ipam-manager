@@ -1,6 +1,6 @@
 # REST API
 
-Base URL: `http://localhost:8000/api` — interactive docs at `/docs` (OpenAPI).
+Base URL: `http://localhost:8076/api` — interactive docs at `/docs` (OpenAPI).
 
 All endpoints (except login) require:
 

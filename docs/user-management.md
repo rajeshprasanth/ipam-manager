@@ -20,7 +20,7 @@ Admins can:
 ## Creating a user (API)
 
 ```bash
-curl -X POST http://localhost:8000/api/users \
+curl -X POST http://localhost:8076/api/users \
   -H "Authorization: Bearer <admin-jwt>" \
   -H "Content-Type: application/json" \
   -d '{"username":"ops1","email":"ops1@example.com","password":"a-strong-password","role":"viewer","full_name":"Ops One"}'
@@ -32,11 +32,13 @@ There is **no default account**. The very first admin must be created from the
 command line on the server:
 
 ```bash
-python -m app.scripts.create_admin \
+./install.sh admin
+# or directly (inside the web container for Docker installs):
+docker exec -it IPAM-Manager-Web python -m app.scripts.create_admin \
     --username admin \
     --email admin@example.com \
     --password "a-strong-password"
 ```
 
 This script also handles the **password-recovery** case: see
-[Troubleshooting → I forgot the admin password](troubleshooting.md#i-forgot-the-admin-password-how-do-i-recover).
+[Troubleshooting → First admin / password recovery](troubleshooting.md#first-admin-password-recovery).

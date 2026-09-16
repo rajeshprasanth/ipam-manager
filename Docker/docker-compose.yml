@@ -1,19 +1,50 @@
 ---
+# Full Docker stack: PostgreSQL + IPAM Manager.
+#
+#
+# Run from the repository root:
+#   docker compose -f Docker/docker-compose.yml up -d --build
+#
+# App : http://localhost:${APP_PORT:-8076}
+#
+# Variables come from the environment (or a local .env file). Defaults are
+# development-safe; override POSTGRES_PASSWORD and SECRET_KEY in production.
+#
+# For container platforms that provide a managed database (e.g. Render),
+# skip the `db` service and set DATABASE_URL to the managed connection string
+# while keeping this `web` service.
+
 services:
   db:
+    container_name: IPAM-Manager-DB
     image: postgres:16-alpine
-    container_name: ipam-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ipam
-      POSTGRES_PASSWORD: ipam
-      POSTGRES_DB: ipam
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-ipam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ipam}
+      POSTGRES_DB: ${POSTGRES_DB:-ipam}
+    # Run the bootstrap as root so we can make the bind-mounted logs/
+    # directory writable for the postgres user, then hand off to the official
+    # entrypoint (which drops to the postgres user and starts the server with
+    # the logging_collector options below).
+    user: "0:0"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /var/log/postgres
+        chmod 777 /var/log/postgres
+        exec docker-entrypoint.sh postgres \
+          -c logging_collector=on \
+          -c log_directory=/var/log/postgres \
+          -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log \
+          -c log_rotation_age=1d \
+          -c log_rotation_size=100MB
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ../logs:/var/log/postgres:Z
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ipam -d ipam"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ipam} -d ${POSTGRES_DB:-ipam}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -21,23 +52,43 @@ services:
   web:
     build:
       context: ..
-      dockerfile: Dockerfile
-    container_name: ipam-manager
+      dockerfile: Docker/Dockerfile
+    container_name: IPAM-Manager-Web
+    image: ipam-manager:latest
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://ipam:ipam@db:5432/ipam
-      SECRET_KEY: change-this-in-production-generate-a-long-random-value
+      # DATABASE_URL is intentionally NOT set: the app builds it from
+      # POSTGRES_* + POSTGRES_HOST (pinned to the "db" service) below, so the
+      # container never guesses the hostname. Override DATABASE_URL to use a
+      # managed/external database instead (e.g. for Render: host=...).
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${POSTGRES_USER:-ipam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ipam}
+      POSTGRES_DB: ${POSTGRES_DB:-ipam}
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production-generate-a-long-random-value}
+      APP_NAME: ${APP_NAME:-IPAM Manager}
+      APP_OWNER: ${APP_OWNER:-IPAM Manager Team}
+      COPYRIGHT: ${COPYRIGHT:-}
       AUTO_CREATE_TABLES: "false"
-      COOKIE_SECURE: "false"
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       COOKIE_SAMESITE: lax
       ACCESS_TOKEN_EXPIRE_MINUTES: 480
-    ports:
-      - "8000:8000"
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      PORT: ${APP_PORT:-8076}
+      LOG_DIR: /var/log/ipam
     volumes:
-      - ./logs:/app/logs
+      - ../logs:/var/log/ipam:Z
+    ports:
+      - "${APP_PORT:-8076}:${APP_PORT:-8076}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8076') + '/', timeout=4)\""]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
 volumes:
   pgdata:

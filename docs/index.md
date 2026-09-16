@@ -13,6 +13,7 @@ control (admin / view-only), a modern Bootstrap 5 web portal, and a REST API.
 - **REST API** — JSON API with JWT bearer authentication for scripts and integrations.
 - **Real database** — PostgreSQL in production (via SQLAlchemy + Alembic migrations); SQLite supported for local development and tests.
 - **Hardened auth** — bcrypt password hashing, HTTP-only JWT cookies, per-form CSRF protection, signed flash messages.
+- **One-script installer** — interactive setup and a management menu (Docker Compose / host + PostgreSQL / host + SQLite), detached start/stop, and file-based logs in `./logs` for both container and host installs.
 
 ## Tech stack
 
@@ -26,6 +27,15 @@ control (admin / view-only), a modern Bootstrap 5 web portal, and a REST API.
 | Auth       | bcrypt + JWT (python-jose)               |
 | Server     | Uvicorn (dev) / Gunicorn + Uvicorn (prod)|
 
+## Quick start
+
+```bash
+./install.sh      # interactive installer + management menu
+```
+
+See [Getting Started](getting-started.md) for details and the non-interactive
+commands (`docker`, `host-postgres`, `host-sqlite`, `start`, `stop`, `docs`, …).
+
 ## Documentation
 
 - [Getting Started](getting-started.md) — install, run, and create your first admin.
@@ -36,3 +46,8 @@ control (admin / view-only), a modern Bootstrap 5 web portal, and a REST API.
 - [REST API](api.md) — endpoints reference.
 - [Deployment](deployment.md) — Docker Compose with PostgreSQL.
 - [Troubleshooting & FAQ](troubleshooting.md) — password recovery, common issues.
+
+## License
+
+[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html) —
+Copyright (c) 2026 IPAM Manager Team.

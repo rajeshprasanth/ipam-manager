@@ -1,9 +1,46 @@
 # Troubleshooting & FAQ
 
-## What are the default username and password?
+## "Could not translate host name 'db' to address" or "connection to server at localhost ... refused"
 
-**There are none.** The application has no default account. The first
-administrator must be created after installation:
+Both mean the **web container cannot reach a running database**. They are two
+symptoms of the same problem; which one you see depends on how `POSTGRES_HOST`
+is set:
+
+- `db` does not resolve → the database container is **not running** or the web
+  container is **not on the same Docker network** as it.
+- falls back to `localhost` (refused) → the web container is running as a
+  standalone container with no database next to it.
+
+Diagnose:
+
+```bash
+docker compose -f Docker/docker-compose.yml ps          # are BOTH services Up?
+docker ps                                                # is there a db container?
+docker network ls                                        # same network? (default is ipam-manager_default)
+docker exec IPAM-Manager-Web getent hosts db             # empty = db unknown to web
+docker logs IPAM-Manager-DB                              # any errors in the DB?
+```
+
+Fixes:
+
+- Prefer the whole stack: `docker compose -f Docker/docker-compose.yml up -d --build`.
+- If running the app image **standalone** (no `db` service), the container has
+  no database at all — you must point it at one:
+  `docker run ... -e DATABASE_URL=postgresql://USER:PASS@HOST:5432/DB ...`
+  (or run it on the same custom network as a Postgres container whose alias is
+  `db`).
+- After `docker compose down`, the network is removed — start it again with
+  `up -d` (never `docker start IPAM-Manager-Web` alone).
+
+## First admin / password recovery
+
+**There is no default account.** Create (or reset) the administrator with:
+
+```bash
+./install.sh admin
+```
+
+or directly:
 
 ```bash
 python -m app.scripts.create_admin \
@@ -12,20 +49,17 @@ python -m app.scripts.create_admin \
     --password "a-strong-password"
 ```
 
-## I forgot the admin password — how do I recover?
-
-Run the create-admin script again **with the same username**. It updates the
-existing account instead of failing:
+In the Docker stack, run it inside the web container:
 
 ```bash
-python -m app.scripts.create_admin \
+docker exec -it IPAM-Manager-Web python -m app.scripts.create_admin \
     --username admin \
     --email admin@example.com \
     --password "a-new-strong-password"
 ```
 
-This resets the password, restores the `admin` role, and re-activates the
-account. Sign in with the new password immediately.
+Running it again **with the same username** resets the password, restores the
+`admin` role, and re-activates the account — this is your recovery mechanism.
 
 !!! tip "This is your recovery mechanism"
     There is intentionally no "forgot password" email flow. Keep a copy of the
@@ -88,6 +122,9 @@ have no local password — use **Users → reset password** to grant one if need
 ## How do I rebuild the documentation site?
 
 ```bash
-mkdocs build     # site/ directory
-mkdocs serve     # local preview
+./install.sh docs         # install deps + serve at 127.0.0.1:${DOCS_PORT} (default 8000)
+./install.sh docs-build   # strict build into ./site
 ```
+
+Manual: `mkdocs serve` (local preview) / `mkdocs build --strict` (site/). Use
+`DOCS_PORT` (or `./install.sh`) to change the preview port.

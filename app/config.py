@@ -1,7 +1,48 @@
 """Application configuration loaded from environment / .env file."""
+import os
+import socket
 from functools import lru_cache
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Populate os.environ from .env so bare-metal runs can feed POSTGRES_* /
+# APP_PORT etc. into default value helpers below (idempotent in containers,
+# where env vars are provided out-of-band).
+load_dotenv()
+
+
+def _resolve_db_host() -> str:
+    """Return the PostgreSQL host that fits the current runtime.
+
+    Precedence:
+      1. ``POSTGRES_HOST`` (the Compose file pins this to ``db`` so the
+         container never guesses).
+      2. The ``db`` hostname on a Docker Compose network.
+      3. ``localhost`` (bare-metal / VM / Render with DATABASE_URL set).
+    """
+    explicit = os.environ.get("POSTGRES_HOST")
+    if explicit:
+        return explicit
+    try:
+        socket.getaddrinfo("db", 5432, socket.AF_INET)
+        return "db"
+    except socket.gaierror:
+        pass
+    try:
+        socket.getaddrinfo("db", 5432, socket.AF_INET6)
+        return "db"
+    except socket.gaierror:
+        pass
+    return "localhost"
+
+
+def _default_db_url() -> str:
+    """Build the default DATABASE_URL when none is provided."""
+    user = os.environ.get("POSTGRES_USER", "ipam")
+    password = os.environ.get("POSTGRES_PASSWORD", "ipam")
+    db = os.environ.get("POSTGRES_DB", "ipam")
+    return f"postgresql+psycopg2://{user}:{password}@{_resolve_db_host()}:5432/{db}"
 
 
 class Settings(BaseSettings):
@@ -24,7 +65,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
 
-    DATABASE_URL: str = "postgresql+psycopg2://ipam:ipam@localhost:5432/ipam"
+    # Auto-detected: "db" inside a Docker network, "localhost" elsewhere.
+    # An explicit DATABASE_URL always takes precedence over this default.
+    DATABASE_URL: str = _default_db_url()
 
     COOKIE_SECURE: bool = False
     COOKIE_SAMESITE: str = "lax"

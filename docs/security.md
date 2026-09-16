@@ -33,7 +33,7 @@ Two roles are enforced everywhere — web UI and REST API:
 Log in to obtain a JWT:
 
 ```bash
-curl -s -X POST http://localhost:8000/api/auth/login \
+curl -s -X POST http://localhost:8076/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"your-password"}'
 ```
@@ -47,7 +47,7 @@ Response:
 Use the token on subsequent requests:
 
 ```bash
-curl -H "Authorization: Bearer <jwt>" http://localhost:8000/api/ip-addresses
+curl -H "Authorization: Bearer <jwt>" http://localhost:8076/api/ip-addresses
 ```
 
 ## CSRF protection (web forms)

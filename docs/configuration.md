@@ -13,7 +13,6 @@ All configuration is read from environment variables or a `.env` file
 | `SECRET_KEY` | `change-me-in-production` | **Required in production.** Used to sign JWT, session, CSRF, and flash cookies. Generate with `python -c "import secrets; print(secrets.token_urlsafe(64))"`. |
 | `ALGORITHM` | `HS256` | JWT signing algorithm. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `480` | JWT token lifetime in minutes (8 hours). |
-| `DATABASE_URL` | `postgresql+psycopg2://ipam:ipam@localhost:5432/ipam` | SQLAlchemy connection string. See [Database & Migrations](database.md). |
 | `COOKIE_SECURE` | `false` | Set to `true` when serving over **HTTPS** so auth cookies are only sent over TLS. |
 | `COOKIE_SAMESITE` | `lax` | SameSite policy for cookies (`lax` / `strict` / `none`). |
 | `GOOGLE_CLIENT_ID` | *(empty)* | Google OAuth client ID. When set together with the secret, "Continue with Google" appears on the login page. |
@@ -22,6 +21,37 @@ All configuration is read from environment variables or a `.env` file
 | `GITHUB_CLIENT_SECRET` | *(empty)* | GitHub OAuth client secret. |
 | `OAUTH_BASE_URL` | *(empty)* | Public base URL used to build OAuth redirect callbacks. Empty ⇒ derived from the request `Host` header. Set explicitly when behind a proxy / HTTPS (e.g. `https://ipam.example.com`). |
 | `AUTO_CREATE_TABLES` | `true` | Creates tables on startup — dev convenience. Use `false` in production and rely on Alembic migrations. |
+
+## Database connection
+
+`DATABASE_URL` is **optional**. When it is not set, `app/config.py`
+auto-detects the host:
+
+- inside a Docker network → the `db` service (`POSTGRES_HOST`) wins,
+- on the host / VM → `localhost`,
+- credentials default to `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`
+  (or `ipam` / `ipam` / `ipam`).
+
+Set an explicit `DATABASE_URL` to override auto-detection (e.g. a managed
+database on Render/AWS).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | *(auto)* | SQLAlchemy connection string. Overrides auto-detection when set. |
+| `POSTGRES_HOST` | *(auto)* | Database hostname. The Compose file pins it to `db`. |
+| `POSTGRES_USER` | `ipam` | PostgreSQL user. |
+| `POSTGRES_PASSWORD` | `ipam` | PostgreSQL password. |
+| `POSTGRES_DB` | `ipam` | PostgreSQL database name. |
+
+## Installer / runtime settings
+
+Settings used by `./install.sh` and the local tooling (kept in `.env`, read by
+the installer, not by the FastAPI app):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APP_PORT` | `8076` | Web UI / API port (asked interactively). |
+| `DOCS_PORT` | `8000` | MkDocs documentation port (asked interactively). |
 
 ## Example `.env`
 
