@@ -75,6 +75,38 @@
         </div>
         <div class="card mt-4">
             <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-pc-display me-2"></i>Device Status</h5>
+                <span class="badge">{{ total_devices }}</span>
+            </div>
+            <div class="card-body">
+                {% set dev_total = total_devices or 0 %}
+                <div class="progress mb-3" style="height:10px;">
+                    <div class="progress-bar bg-success" style="width: {{ (device_counts.active / dev_total * 100) if dev_total else 0 }}%"></div>
+                    <div class="progress-bar bg-secondary" style="width: {{ (device_counts.inactive / dev_total * 100) if dev_total else 0 }}%"></div>
+                    <div class="progress-bar bg-warning" style="width: {{ (device_counts.maintenance / dev_total * 100) if dev_total else 0 }}%"></div>
+                </div>
+                <div class="row text-center g-2">
+                    <div class="col-4">
+                        <span class="status-badge status-active">Active</span>
+                        <div class="stat-value mt-1">{{ device_counts.active }}</div>
+                    </div>
+                    <div class="col-4">
+                        <span class="status-badge status-inactive">Inactive</span>
+                        <div class="stat-value mt-1">{{ device_counts.inactive }}</div>
+                    </div>
+                    <div class="col-4">
+                        <span class="status-badge status-maintenance">Maintenance</span>
+                        <div class="stat-value mt-1">{{ device_counts.maintenance }}</div>
+                    </div>
+                </div>
+                {% if total_devices == 0 %}
+                <div class="form-text text-center mt-2 mb-0">No devices registered yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
                 <h5 class="card-title mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Top Device Types</h5>
             </div>
             <div class="card-body">
@@ -96,13 +128,28 @@
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr><th>IP Address</th><th>Hostname</th><th>Status</th><th>Device Type</th><th>Updated</th></tr>
+                            <tr>
+                                <th>IP Address</th>
+                                <th>Hostname</th>
+                                <th>Device</th>
+                                <th>Status</th>
+                                <th>Device Type</th>
+                                <th>Updated</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for ip in recent_ips %}
                             <tr>
                                 <td><code class="code-ip">{{ ip.ip_address }}/{{ ip.subnet_prefix }}</code></td>
                                 <td>{{ ip.hostname or '-' }}{% if ip.fqdn %}<br><small class="text-muted">{{ ip.fqdn }}</small>{% endif %}</td>
+                                <td>
+                                    {% if ip.device %}
+                                    {{ ip.device.hostname }}
+                                    {% if ip.interface_name %}<br><small class="text-muted">{{ ip.interface_name }}</small>{% endif %}
+                                    {% else %}
+                                    <span class="text-muted">Unassigned</span>
+                                    {% endif %}
+                                </td>
                                 <td><span class="status-badge status-{{ ip.status|lower }}">{{ ip.status }}</span></td>
                                 <td>{{ ip.device_type or '-' }}</td>
                                 <td class="text-muted">{{ ip.updated_at.strftime('%Y-%m-%d %H:%M') if ip.updated_at else '-' }}</td>
@@ -122,19 +169,27 @@
         </div>
 
         <div class="row g-4 mt-0">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="mini-stat card">
                     <div class="mini-value">{{ total_networks }}</div>
                     <div class="mini-label">Networks</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="mini-stat card">
                     <div class="mini-value">{{ total_devices }}</div>
                     <div class="mini-label">Devices</div>
+                    <div class="mini-sub">{{ device_counts.active }} active</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="mini-stat card">
+                    <div class="mini-value">{{ assigned_ips }}</div>
+                    <div class="mini-label">Assigned IPs</div>
+                    <div class="mini-sub">{{ unassigned_ips }} unassigned</div>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <div class="mini-stat card">
                     <div class="mini-value">{{ utilization }}%</div>
                     <div class="mini-label">Utilization</div>

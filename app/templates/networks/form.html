@@ -18,23 +18,66 @@
     <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     <div class="row g-4">
         <div class="col-xl-8">
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-diagram-3 me-2"></i>Network Details</h5></div>
                 <div class="card-body">
                     <div class="row g-3">
                         {{ f.text('network_name', 'Network Name', form_data.get('network_name'), 'Corporate LAN', true, 'col-md-6') }}
                         {{ f.text('network_range', 'Network Range', form_data.get('network_range'), '192.168.1.0/24', true, 'col-md-6', 'Full range with CIDR.') }}
-                        {{ f.text('cidr', 'CIDR', form_data.get('cidr'), '192.168.1.0/24', true, 'col-md-4') }}
-                        {{ f.text('subnet_mask', 'Subnet Mask', form_data.get('subnet_mask'), '255.255.255.0', false, 'col-md-4') }}
-                        {{ f.text('broadcast_address', 'Broadcast Address', form_data.get('broadcast_address'), '192.168.1.255', false, 'col-md-4') }}
-                        {{ f.select('network_role', 'Role', [('', 'Select role'), ('Management','Management'), ('Production','Production'), ('DMZ','DMZ'), ('Guest','Guest'), ('IoT','IoT'), ('Development','Development'), ('Testing','Testing'), ('Backup','Backup')], form_data.get('network_role', ''), 'col-md-4') }}
+                        {{ f.text('cidr', 'CIDR', form_data.get('cidr'), '192.168.1.0/24', true, 'col-md-4', 'Drives the address family below.') }}
+                        {{ f.select('address_family', 'Address Family', options['address_family'], form_data.get('address_family', 'IPv4'), 'col-md-4', false, 'Derived from the CIDR automatically.', 'Select family') }}
                         {{ f.number('vlan_id', 'VLAN ID', form_data.get('vlan_id'), '1-4094', false, 'col-md-4', 1, 4094) }}
+                        {{ f.text('subnet_mask', 'Subnet Mask', form_data.get('subnet_mask'), '255.255.255.0', false, 'col-md-4') }}
+                        {{ f.text('broadcast_address', 'Broadcast Address', form_data.get('broadcast_address'), '192.168.1.255', false, 'col-md-4', 'Must fall inside the CIDR.') }}
                         {{ f.text('location', 'Location', form_data.get('location'), 'Rack A1, DC-East', false, 'col-md-4') }}
+                        {{ f.text('domain_name', 'Domain Name', form_data.get('domain_name'), 'corp.example.com', false, 'col-md-6') }}
+                        {{ f.text('vrf', 'VRF', form_data.get('vrf'), 'MGMT-VRF', false, 'col-md-6', 'Routing domain, when not global.') }}
+                        {{ f.text('gateway', 'Gateway', form_data.get('gateway'), '192.168.1.1', false, 'col-md-6', 'Must fall inside the CIDR.') }}
+                        {{ f.text_list('dns_servers', 'DNS Servers', dns_rows, '192.168.1.53', 'col-md-6', 'Resolvers for this subnet.', 'Add resolver', 10, autocomplete='off') }}
                         {{ f.textarea('description', 'Description', form_data.get('description'), 3) }}
                     </div>
                 </div>
             </div>
-            <div class="d-flex gap-2 mt-4">
+
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-tag me-2"></i>VLAN &amp; DHCP</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {{ f.text('vlan_name', 'VLAN Name', form_data.get('vlan_name'), 'USERS-VLAN', false, 'col-md-6') }}
+                        {{ f.select('network_role', 'Role', [('', 'Select role'), ('Management','Management'), ('Production','Production'), ('DMZ','DMZ'), ('Guest','Guest'), ('IoT','IoT'), ('Development','Development'), ('Testing','Testing'), ('Backup','Backup')], form_data.get('network_role', ''), 'col-md-6') }}
+                        {{ f.text('vlan_range_start', 'VLAN Range Start', form_data.get('vlan_range_start'), '192.168.1.1', false, 'col-md-4', 'Inside the CIDR.') }}
+                        {{ f.text('vlan_range_end', 'VLAN Range End', form_data.get('vlan_range_end'), '192.168.1.254', false, 'col-md-4', 'Inside the CIDR.') }}
+                        <div class="col-md-4 d-flex align-items-end">
+                            {{ f.checkbox('dhcp_enabled', 'DHCP Enabled', form_data.get('dhcp_enabled', false), 'col-12') }}
+                        </div>
+                        {{ f.text('dhcp_server', 'DHCP Server', form_data.get('dhcp_server'), '192.168.1.10', false, 'col-md-4') }}
+                        {{ f.text('dhcp_range_start', 'DHCP Range Start', form_data.get('dhcp_range_start'), '192.168.1.100', false, 'col-md-4', 'Inside the CIDR.') }}
+                        {{ f.text('dhcp_range_end', 'DHCP Range End', form_data.get('dhcp_range_end'), '192.168.1.200', false, 'col-md-4', 'Inside the CIDR.') }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-people me-2"></i>Ownership &amp; Governance</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {{ f.select('environment', 'Environment', options['environment'], form_data.get('environment', ''), 'col-md-4', false, '', 'Select environment') }}
+                        {{ f.select('criticality', 'Criticality', options['criticality'], form_data.get('criticality', 'Medium'), 'col-md-4') }}
+                        {{ f.select('status', 'Status', options['status'], form_data.get('status', 'Active'), 'col-md-4') }}
+                        {{ f.text('tenant', 'Tenant', form_data.get('tenant'), 'Platform Engineering', false, 'col-md-4') }}
+                        {{ f.text('owner', 'Owner', form_data.get('owner'), 'Network Team', false, 'col-md-4') }}
+                        {{ f.email('contact_email', 'Contact Email', form_data.get('contact_email'), 'netops@example.com', false, 'col-md-4') }}
+                        {{ f.text('cost_center', 'Cost Center', form_data.get('cost_center'), 'CC-1042', false, 'col-md-4') }}
+                        {{ f.text('site_code', 'Site Code', form_data.get('site_code'), 'BLR-01', false, 'col-md-4') }}
+                        {{ f.text('datacenter', 'Datacenter', form_data.get('datacenter'), 'DC-East', false, 'col-md-4') }}
+                        {{ f.select('parent_network_id', 'Parent Network', parents, form_data.get('parent_network_id', ''), 'col-md-6', false, 'Supernet this subnet is carved from; it must contain this CIDR.', 'No parent') }}
+                        {{ f.text('tags', 'Tags', form_data.get('tags'), 'pci,dmz', false, 'col-md-6') }}
+                        {{ f.textarea('notes', 'Notes', form_data.get('notes'), 3, 'col-12') }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Save Changes' if mode == 'edit' else 'Add Network' }}</button>
                 <a href="{{ url_for('networks') }}" class="btn btn-outline-secondary">Cancel</a>
             </div>
@@ -44,9 +87,10 @@
                 <div class="card-header"><h6 class="card-title mb-0"><i class="bi bi-lightbulb me-2"></i>Helpful tips</h6></div>
                 <ul class="list-group list-group-flush help-list">
                     <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Use full CIDR notation, e.g. <code>192.168.1.0/24</code>.</li>
-                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> VLAN IDs range 1&ndash;4094.</li>
-                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Pick a role to categorize network purpose.</li>
-                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Document the physical location for reference.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> The address family follows the CIDR, IPv4 or IPv6.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Gateway, DHCP and VLAN ranges must sit inside the CIDR.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Overlapping CIDRs are rejected, so keep aggregations on the parent network.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> A parent network must contain this subnet, which keeps the hierarchy honest.</li>
                 </ul>
             </div>
         </div>

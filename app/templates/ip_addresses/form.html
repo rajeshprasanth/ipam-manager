@@ -36,8 +36,10 @@
                         {{ f.text('device_type', 'Device Type', form_data.get('device_type'), 'Server', false, 'col-md-3') }}
                         {{ f.text('interface_name', 'Interface', form_data.get('interface_name'), 'eth0', false, 'col-md-3') }}
                         {{ f.text('vlan_id', 'VLAN ID', form_data.get('vlan_id'), '1-4094', false, 'col-md-3') }}
-                        {{ f.text('network_segment', 'Network Segment', form_data.get('network_segment'), 'Seg-10', false, 'col-md-3') }}
-                        {{ f.text('mac_address', 'MAC Address', form_data.get('mac_address'), 'AA:BB:CC:DD:EE:FF', false, 'col-md-4') }}
+                        {{ f.select('subnet_id', 'Subnet', subnet_options, form_data.get('subnet_id'), 'col-md-6', false, 'Declares the subnet this address belongs to. Left empty, the subnet containing the address is detected automatically.', '— Detect automatically —') }}
+                        {{ f.text('network_segment', 'Network Segment', form_data.get('network_segment'), 'Seg-10', false, 'col-md-6', 'Legacy free-text label.') }}
+                        {{ f.text_list('mac_addresses', 'MAC Addresses', list_values(form_data, 'mac_addresses'), 'AA:BB:CC:DD:EE:FF', 'col-md-6', 'Add one address per interface. Paste comma-separated values to split them automatically.', 'Add MAC Address', 20, '([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}') }}
+                        {{ f.select('device_id', 'Device', device_options, form_data.get('device_id'), 'col-md-6', false, 'Leave empty if the address is not tied to a registered device.', '— Not assigned to a device —') }}
                         {{ f.text('gateway', 'Gateway', form_data.get('gateway'), '192.168.1.1', false, 'col-md-4') }}
                         {{ f.datetime_local('assigned_date', 'Assigned Date', form_data.get('assigned_date')|dt if form_data.get('assigned_date') else '') }}
                         {{ f.datetime_local('expiry_date', 'Expiry Date', form_data.get('expiry_date')|dt if form_data.get('expiry_date') else '') }}
@@ -72,6 +74,23 @@
                 </div>
             </div>
 
+            <div class="card mt-4">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-clipboard-check me-2"></i>Allocation &amp; Governance</h5></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {{ f.select('allocation_method', 'Allocation Method', options['allocation_method'], form_data.get('allocation_method', 'Manual'), 'col-md-4', false, '', 'Select method') }}
+                        {{ f.select('discovery_source', 'Discovery Source', options['discovery_source'], form_data.get('discovery_source', 'Manual'), 'col-md-4', false, '', 'Select source') }}
+                        {{ f.checkbox('is_primary', 'Primary address for this device', form_data.get('is_primary', false), 'col-md-4', 'Only one primary per device.') }}
+                        {{ f.text('reverse_dns', 'Reverse DNS (PTR)', form_data.get('reverse_dns'), '10.0.0.5.example.com', false, 'col-md-6') }}
+                        {{ f.text('redundancy_group', 'Redundancy Group', form_data.get('redundancy_group'), 'FHRP-GRP-1', false, 'col-md-6', 'Addresses that fail over together.') }}
+                        {{ f.text('approved_by', 'Approved By', form_data.get('approved_by'), 'Jane Doe', false, 'col-md-4') }}
+                        {{ f.text('status_reason', 'Status Reason', form_data.get('status_reason'), 'Reserved for new cluster', false, 'col-md-8') }}
+                        {{ f.datetime_local('status_changed_at', 'Status Changed', form_data.get('status_changed_at')|dt if form_data.get('status_changed_at') else '') }}
+                        {{ f.textarea('shared_with', 'Shared With', form_data.get('shared_with'), 2, 'col-12', false) }}
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Save Changes' if mode == 'edit' else 'Add IP Address' }}</button>
                 <a href="{{ url_for('ip_addresses') }}" class="btn btn-outline-secondary">Cancel</a>
@@ -84,8 +103,12 @@
                 <ul class="list-group list-group-flush help-list">
                     <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Use CIDR-style prefix (e.g. <code>24</code> = <code>/24</code>).</li>
                     <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> MAC format: <code>AA:BB:CC:DD:EE:FF</code>.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Add up to 20 MAC addresses (one per interface); duplicates are ignored.</li>
                     <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Set <em>Reserved</em> to hold an IP without assignment.</li>
                     <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> VLAN IDs are limited to 1&ndash;4094.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Pick a subnet so the address joins that subnet's inventory.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> An address must fall inside the subnet it is linked to.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Mark exactly one address per device as primary.</li>
                 </ul>
             </div>
         </div>

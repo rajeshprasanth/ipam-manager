@@ -25,12 +25,35 @@
 </div>
 {% endmacro %}
 
-{% macro number(name, label, value='', placeholder='', required=false, cls='col-md-4', min='', max='') %}
+{% macro number(name, label, value='', placeholder='', required=false, cls='col-md-4', min='', max='', step='') %}
 <div class="{{ cls }}">
     <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
     <input type="number" class="form-control" id="{{ name }}" name="{{ name }}"
            value="{{ value or '' }}" placeholder="{{ placeholder }}" {% if min %}min="{{ min }}"{% endif %}
-           {% if max %}max="{{ max }}"{% endif %} {% if required %}required{% endif %}>
+           {% if max %}max="{{ max }}"{% endif %} {% if step %}step="{{ step }}"{% endif %} {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro date_input(name, label, value='', cls='col-md-4', required=false, hint='') %}
+<div class="{{ cls }}">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
+    <input type="date" class="form-control" id="{{ name }}" name="{{ name }}"
+           value="{{ value or '' }}" {% if required %}required{% endif %}>
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro checkbox(name, label, value=false, cls='col-md-4', hint='') %}
+<div class="{{ cls }} mt-3">
+    {# Browsers omit unchecked boxes entirely, so the model default would win on
+       every edit. The hidden companion guarantees the field is always submitted;
+       a checked box sends "1" after it and wins. #}
+    <input type="hidden" name="{{ name }}" value="0">
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="{{ name }}" name="{{ name }}" value="1" {% if value %}checked{% endif %}>
+        <label class="form-check-label" for="{{ name }}">{{ label }}</label>
+    </div>
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
 </div>
 {% endmacro %}
 
@@ -48,14 +71,48 @@
 </div>
 {% endmacro %}
 
-{% macro select(name, label, options, value='', cls='col-md-4', required=false) %}
+{% macro select(name, label, options, value='', cls='col-md-4', required=false, hint='', blank='') %}
 <div class="{{ cls }}">
     <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger"> *</span>{% endif %}</label>
     <select class="form-select" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+        {% if blank %}<option value="" {% if not value %}selected{% endif %}>{{ blank }}</option>{% endif %}
         {% for val, text in options %}
-        <option value="{{ val }}" {% if value == val %}selected{% endif %}>{{ text }}</option>
+        <option value="{{ val }}" {% if value|string == val|string %}selected{% endif %}>{{ text }}</option>
         {% endfor %}
     </select>
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro text_list(name, label, values=[], placeholder='', cls='col-md-6', hint='', add_label='Add another', max=20, pattern='', autocomplete='off') %}
+<div class="{{ cls }}" data-field-group>
+    <label class="form-label">{{ label }}</label>
+    <div class="field-list" data-field-list="{{ name }}" data-field-max="{{ max }}">
+        {% for value in values %}
+        <div class="input-group field-list-row mb-2">
+            <input type="text" class="form-control field-list-input" name="{{ name }}"
+                   value="{{ value }}" placeholder="{{ placeholder }}" autocomplete="{{ autocomplete }}"
+                   {% if pattern %}pattern="{{ pattern }}"{% endif %}>
+            <button type="button" class="btn btn-outline-danger" data-field-remove aria-label="Remove {{ label }}">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        {% endfor %}
+        <template data-field-template>
+            <div class="input-group field-list-row mb-2">
+                <input type="text" class="form-control field-list-input" name="{{ name }}"
+                       placeholder="{{ placeholder }}" autocomplete="{{ autocomplete }}"
+                       {% if pattern %}pattern="{{ pattern }}"{% endif %}>
+                <button type="button" class="btn btn-outline-danger" data-field-remove aria-label="Remove {{ label }}">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </template>
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm mt-1" data-field-add>
+        <i class="bi bi-plus-lg me-1"></i>{{ add_label }}
+    </button>
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
 </div>
 {% endmacro %}
 

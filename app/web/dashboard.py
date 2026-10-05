@@ -3,10 +3,11 @@ import json
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import Device, IPAddress, Network, User
+from app.models import IPAddress, User
+from app.stats import dashboard_stats
 from app.web.deps import get_current_user_web, render
 
 router = APIRouter()
@@ -14,21 +15,8 @@ router = APIRouter()
 
 @router.get("/dashboard", name="dashboard")
 async def dashboard(request: Request, _: User = Depends(get_current_user_web), db: Session = Depends(get_db)):
-    total_ips = db.scalar(select(func.count()).select_from(IPAddress)) or 0
-    status_counts = dict(db.execute(
-        select(IPAddress.status, func.count()).group_by(IPAddress.status)
-    ).all())
-
-    counts = {
-        "total": total_ips,
-        "available": status_counts.get("Available", 0),
-        "reserved": status_counts.get("Reserved", 0),
-        "active": status_counts.get("Active", 0),
-        "deprecated": status_counts.get("Deprecated", 0),
-    }
-    total_networks = db.scalar(select(func.count()).select_from(Network)) or 0
-    total_devices = db.scalar(select(func.count()).select_from(Device)) or 0
-    total_users = db.scalar(select(func.count()).select_from(User)) or 0
+    stats = dashboard_stats(db)
+    counts = {"total": stats["total_ips"], **stats["ip_status"]}
 
     device_type_rows = db.execute(
         select(IPAddress.device_type, func.count())
@@ -40,17 +28,21 @@ async def dashboard(request: Request, _: User = Depends(get_current_user_web), d
     device_type_counts = [{"label": label, "value": value} for label, value in device_type_rows]
 
     recent_ips = db.scalars(
-        select(IPAddress).order_by(IPAddress.updated_at.desc()).limit(6)
+        select(IPAddress).options(selectinload(IPAddress.device))
+        .order_by(IPAddress.updated_at.desc()).limit(6)
     ).all()
 
-    utilization = (counts["active"] / total_ips * 100) if total_ips else 0
+    utilization = (counts["active"] / counts["total"] * 100) if counts["total"] else 0
 
     return render(request, "dashboard.html", {
         "active": "dashboard",
         "counts": counts,
-        "total_networks": total_networks,
-        "total_devices": total_devices,
-        "total_users": total_users,
+        "total_networks": stats["total_networks"],
+        "total_users": stats["total_users"],
+        "total_devices": stats["total_devices"],
+        "device_counts": stats["device_status"],
+        "assigned_ips": stats["assigned_ips"],
+        "unassigned_ips": stats["unassigned_ips"],
         "utilization": round(utilization, 1),
         "device_type_counts": json.dumps(device_type_counts),
         "status_chart": json.dumps({

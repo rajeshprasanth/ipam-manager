@@ -13,6 +13,44 @@
 </div>
 
 {% if items %}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('networks') }}" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" for="q">Search</label>
+                <input type="text" class="form-control" id="q" name="q" value="{{ q }}"
+                       placeholder="Name, CIDR, VLAN, VRF, owner, site">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="environment">Environment</label>
+                <select class="form-select" id="environment" name="environment">
+                    <option value="">All</option>
+                    {% for val, text in environments %}
+                    <option value="{{ val }}" {% if flt_env == val %}selected{% endif %}>{{ text }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="status">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All</option>
+                    {% for val, text in statuses %}
+                    <option value="{{ val }}" {% if flt_status == val %}selected{% endif %}>{{ text }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                {% if q or flt_env or flt_status %}
+                <a href="{{ url_for('networks') }}" class="btn btn-outline-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if items %}
 <div class="row g-3">
     {% for network in items %}
     <div class="col-xl-4 col-md-6">
@@ -35,8 +73,24 @@
                 </div>
                 <div class="network-meta">
                     <span class="meta-item"><i class="bi bi-subtract me-1"></i>{{ network.subnet_mask or network.cidr }}</span>
+                    {% if network.address_family %}<span class="vlan-pill"><i class="bi bi-globe2"></i> {{ network.address_family }}</span>{% endif %}
                     {% if network.vlan_id %}<span class="vlan-pill"><i class="bi bi-tag"></i> VLAN {{ network.vlan_id }}</span>{% endif %}
                     {% if network.network_role %}<span class="role-pill role-{{ network.network_role|lower }}">{{ network.network_role }}</span>{% endif %}
+                </div>
+                <dl class="network-facts mt-2 mb-0">
+                    {% if network.gateway %}<dt>Gateway</dt><dd>{{ network.gateway }}</dd>{% endif %}
+                    {% if network.environment %}<dt>Environment</dt><dd>{{ network.environment }}</dd>{% endif %}
+                    {% if network.criticality %}<dt>Criticality</dt><dd>{{ network.criticality }}</dd>{% endif %}
+                    {% if network.owner %}<dt>Owner</dt><dd>{{ network.owner }}</dd>{% endif %}
+                    {% if network.vrf %}<dt>VRF</dt><dd>{{ network.vrf }}</dd>{% endif %}
+                    {% if network.parent_network %}<dt>Parent</dt><dd><a href="{{ url_for('networks_edit', item_id=network.parent_network.id) }}">{{ network.parent_network.network_name }}</a></dd>{% endif %}
+                    {% if network.ip_addresses|length %}<dt>Addresses</dt><dd>{{ network.ip_addresses|length }}</dd>{% endif %}
+                </dl>
+                <div class="network-meta mt-2">
+                    {% if network.status and network.status != 'Active' %}
+                    <span class="role-pill role-{{ network.status|lower }}">{{ network.status }}</span>
+                    {% endif %}
+                    {% if network.dhcp_enabled %}<span class="meta-item"><i class="bi bi-wifi me-1"></i>DHCP</span>{% endif %}
                 </div>
                 <div class="network-foot">
                     {% if network.location %}<span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ network.location }}</span>{% endif %}
@@ -52,8 +106,13 @@
 <div class="card">
     <div class="empty-state">
         <i class="bi bi-diagram-3"></i>
+        {% if q or flt_env or flt_status %}
+        <p>No networks match those filters.</p>
+        <a href="{{ url_for('networks') }}" class="btn btn-outline-secondary btn-sm">Clear filters</a>
+        {% else %}
         <p>No networks defined yet.</p>
         {% if current_user.is_admin %}<a href="{{ url_for('networks_add') }}" class="btn btn-primary btn-sm">Add your first network</a>{% endif %}
+        {% endif %}
     </div>
 </div>
 {% endif %}

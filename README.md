@@ -38,6 +38,18 @@ multiple sign-in options.
 - **IP, network, and device inventory** — full CRUD from the portal with
   search, filtering, and pagination; every IP change is recorded in an audit
   history.
+- **CMDB device records** — 85 enterprise attributes per device covering
+  identification (`asset_tag`, unique), classification, lifecycle and warranty,
+  financial, organisational, placement, technical, service/resilience and
+  compliance, with a `parent_device_id` hierarchy for hypervisors and
+  enclosures. See [docs/database.md](docs/database.md#device-cmdb-attributes).
+- **IPAM subnet modelling** — networks carry gateway, DNS, VRF, DHCP scope, VLAN
+  span and environment/tenant/owner governance, plus a `parent_network_id`
+  supernet hierarchy with validated CIDR containment. Addresses link to their
+  subnet via `subnet_id` (auto-detected from the CIDR when omitted), support one
+  `is_primary` address per device, and record allocation method, discovery
+  source, reverse DNS, redundancy group and approval. Overlapping CIDRs are
+  rejected. See [docs/database.md](docs/database.md#network-attributes).
 - **Role-based access control** — `admin` (full control) and `viewer`
   (read-only), enforced in both the web UI and the REST API.
 - **Multiple sign-in options** — local username/password, **Google OAuth**, and
@@ -327,7 +339,7 @@ Authorization: Bearer <access_token>
 |--------|---------------------------------------|------|---------------------------------|
 | GET    | `/api/ip-addresses`                   | V    | List (search/status/page)       |
 | GET    | `/api/ip-addresses/{id}`              | V    | Get one                         |
-| POST   | `/api/ip-addresses`                   | A    | Create (`409` on duplicate IP)  |
+| POST   | `/api/ip-addresses`                   | A    | Create (`409` on duplicate IP, bad `subnet_id`, or second primary) |
 | PATCH  | `/api/ip-addresses/{id}`              | A    | Update                          |
 | DELETE | `/api/ip-addresses/{id}`              | A    | Delete                          |
 
@@ -335,8 +347,8 @@ Authorization: Bearer <access_token>
 
 | Method | Path                     | Role | Description    |
 |--------|--------------------------|------|----------------|
-| GET    | `/api/networks`, `/api/networks/{id}`        | V    | List / get     |
-| POST   | `/api/networks`          | A    | Create         |
+| GET    | `/api/networks`, `/api/networks/{id}`        | V    | List / get (`q`, `environment`, `status`) |
+| POST   | `/api/networks`          | A    | Create (`409` on overlapping CIDR) |
 | PATCH  | `/api/networks/{id}`     | A    | Update         |
 | DELETE | `/api/networks/{id}`     | A    | Delete         |
 | GET    | `/api/devices`, `/api/devices/{id}`          | V    | List / get     |
@@ -346,17 +358,21 @@ Authorization: Bearer <access_token>
 
 ### Stats
 
-`GET /api/stats` → totals plus a per-status breakdown of IP addresses.
+`GET /api/stats` → totals plus per-status breakdowns of IP addresses and devices.
 
 ### Error codes
 
 `401` missing/invalid token · `403` insufficient role / disabled ·
-`404` not found · `409` conflict (duplicate IP/user) · `422` validation ·
+`404` not found · `409` conflict (duplicate IP/user, overlapping CIDR, address outside its subnet) · `422` validation ·
 `204` successful delete.
 
 ## Database & migrations
 
 Models: `User`, `IPAddress`, `Network`, `Device`, `IPHistory` (audit log).
+
+Addresses reference a subnet through `ip_addresses.subnet_id`, and networks
+form an optional supernet tree through `networks.parent_network_id`. Both links
+use `ON DELETE SET NULL`, so deleting a parent never cascades away inventory.
 
 ```bash
 alembic upgrade head        # apply migrations
@@ -378,9 +394,12 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-The suite (23 tests) runs against an in-memory SQLite database with no external
-services. It covers portal auth & RBAC, API CRUD and role guards, CSRF, and the
-Google/GitHub OAuth flows (provider HTTP calls faked).
+The suite (96 tests) runs against an in-memory SQLite database with no external
+services. It covers portal auth & RBAC, API CRUD and role guards, CSRF, the
+Google/GitHub OAuth flows (provider HTTP calls faked), the device CMDB fields,
+and the IPAM subnet rules — CIDR overlap, gateway/DHCP/VLAN containment, parent
+network containment and cycles, subnet linking and the one-primary-per-device
+rule.
 
 ## Logs
 

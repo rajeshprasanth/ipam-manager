@@ -20,7 +20,7 @@
             <div class="col-md-4">
                 <label class="form-label small mb-1" for="search">Search</label>
                 <input type="text" class="form-control form-control-sm" id="search" name="search"
-                       placeholder="IP, hostname, FQDN, description..." value="{{ search }}">
+                       placeholder="IP, hostname, FQDN, MAC, description..." value="{{ search }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label small mb-1" for="status">Status</label>
@@ -37,6 +37,24 @@
                     <option value="">All device types</option>
                     {% for t in ['Server', 'Router', 'Switch', 'Firewall', 'IoT', 'Workstation', 'Printer', 'Camera', 'Access Point', 'Storage', 'Other'] %}
                     <option value="{{ t }}" {{ 'selected' if device_type == t }}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1" for="device_id">Assigned Device</label>
+                <select class="form-select form-select-sm" id="device_id" name="device_id">
+                    <option value="">Any device</option>
+                    {% for did, dname in devices %}
+                    <option value="{{ did }}" {{ 'selected' if device_id|string == did|string }}>{{ dname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1" for="subnet_id">Subnet</label>
+                <select class="form-select form-select-sm" id="subnet_id" name="subnet_id">
+                    <option value="">Any subnet</option>
+                    {% for sid, sname in subnets %}
+                    <option value="{{ sid }}" {{ 'selected' if subnet_id|string == sid|string }}>{{ sname }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -64,6 +82,8 @@
                     <tr>
                         <th>IP Address</th>
                         <th>Hostname</th>
+                        <th>Assigned Device</th>
+                        <th>Subnet</th>
                         <th>Status</th>
                         <th>Device Type</th>
                         <th>VLAN</th>
@@ -75,12 +95,40 @@
                 <tbody>
                     {% for ip in items %}
                     <tr>
-                        <td><code class="code-ip">{{ ip.ip_address }}/{{ ip.subnet_prefix }}</code></td>
+                        <td>
+                            <code class="code-ip">{{ ip.ip_address }}/{{ ip.subnet_prefix }}</code>
+                            {% if ip.mac_addresses %}
+                            <br><small class="text-muted font-monospace">{{ ip.mac_addresses|join(', ') }}</small>
+                            {% endif %}
+                        </td>
                         <td>
                             {{ ip.hostname or '-' }}
                             {% if ip.fqdn %}<br><small class="text-muted">{{ ip.fqdn }}</small>{% endif %}
                         </td>
-                        <td><span class="status-badge status-{{ ip.status|lower }}">{{ ip.status }}</span></td>
+                        <td>
+                            {% if ip.device %}
+                            {% if current_user.is_admin %}
+                            <a href="{{ url_for('devices_edit', item_id=ip.device.id) }}" class="text-decoration-none">{{ ip.device.hostname }}</a>
+                            {% else %}
+                            {{ ip.device.hostname }}
+                            {% endif %}
+                            {% if ip.interface_name %}<br><small class="text-muted">{{ ip.interface_name }}</small>{% endif %}
+                            {% else %}
+                            <span class="text-muted">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ip.subnet %}
+                            {{ ip.subnet.network_name }}
+                            <br><small class="text-muted font-monospace">{{ ip.subnet.network_range }}</small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ ip.status|lower }}">{{ ip.status }}</span>
+                            {% if ip.is_primary %}<br><span class="vlan-pill" title="Primary address for this device"><i class="bi bi-star-fill"></i> Primary</span>{% endif %}
+                        </td>
                         <td>{{ ip.device_type or '-' }}</td>
                         <td>{% if ip.vlan_id %}<span class="vlan-pill">{{ ip.vlan_id }}</span>{% else %}-{% endif %}</td>
                         <td>{{ ip.assigned_to or '-' }}</td>
@@ -105,19 +153,19 @@
         <nav class="card-footer">
             <ul class="pagination pagination-sm justify-content-center mb-0">
                 {% if page > 1 %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, page=page-1) }}">Previous</a></li>
+                <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, device_id=device_id, subnet_id=subnet_id, page=page-1) }}">Previous</a></li>
                 {% endif %}
                 {% for p in range(1, pages + 1) %}
                     {% if p == page %}
                     <li class="page-item active"><span class="page-link">{{ p }}</span></li>
                     {% elif p <= 3 or p > pages - 3 or (p >= page - 2 and p <= page + 2) %}
-                    <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, page=p) }}">{{ p }}</a></li>
+                    <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, device_id=device_id, subnet_id=subnet_id, page=p) }}">{{ p }}</a></li>
                     {% elif p == 4 or p == pages - 3 %}
                     <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
                     {% endif %}
                 {% endfor %}
                 {% if page < pages %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, page=page+1) }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="{{ url_for('ip_addresses') }}?{{ qs(search=search, status=status, device_type=device_type, vlan_id=vlan_id, device_id=device_id, subnet_id=subnet_id, page=page+1) }}">Next</a></li>
                 {% endif %}
             </ul>
         </nav>

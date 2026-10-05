@@ -2,7 +2,7 @@
 import base64
 import json
 import secrets
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import quote
 
@@ -13,13 +13,30 @@ from fastapi.templating import Jinja2Templates
 from app.config import settings
 from app.models import ROLE_ADMIN, User
 from app.security import create_access_token
+from app.web.forms import list_field_values
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 FLASH_COOKIE = "ipam_flash"
 CSRF_COOKIE = "ipam_csrf"
 
-templates.env.filters["dt"] = lambda v: v.strftime("%Y-%m-%dT%H:%M") if v else ""
+def _fmt(value, pattern: str) -> str:
+    """Render a date/datetime for an HTML date input.
+
+    Tolerates strings because a form re-rendered after a validation error holds
+    the raw submitted text rather than a parsed date.
+    """
+    if not value:
+        return ""
+    if isinstance(value, (datetime, date)):
+        return value.strftime(pattern)
+    return str(value)
+
+
+templates.env.filters["dt"] = lambda v: _fmt(v, "%Y-%m-%dT%H:%M")
+templates.env.filters["d"] = lambda v: _fmt(v, "%Y-%m-%d")
+templates.env.filters["money"] = lambda v: f"{v:,.2f}" if v is not None else ""
+templates.env.filters["comma"] = lambda v: f"{int(v):,}" if v is not None else ""
 
 
 # --------------------------------------------------------------------------- #
@@ -108,6 +125,7 @@ def render(request: Request, template_name: str, context: dict | None = None,
     context["url_for"] = lambda name, **kw: _build_url(request, name, **kw) if kw else str(request.url_for(name))
     context["qs"] = _qs
     context["static"] = _static
+    context["list_values"] = list_field_values
     context["app_name"] = settings.APP_NAME
     context["app_version"] = settings.APP_VERSION
     context["app_owner"] = settings.APP_OWNER

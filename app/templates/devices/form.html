@@ -3,11 +3,17 @@
 {% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Device | IPAM Manager{% endblock %}
 {% block topbar_title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Device{% endblock %}
 {% block content %}
+{# Local shorthands: date/number/select inputs all need the same "" -or filtered
+   value dance, so keep it in one place instead of at every call site. #}
+{% macro dv(fd, name, label, cls='col-md-4') %}{{ f.date_input(name, label, fd.get(name)|d if fd.get(name) else '', cls) }}{% endmacro %}
+{% macro nv(fd, name, label, cls='col-md-3', min='', max='', step='') %}{{ f.number(name, label, fd.get(name), '', false, cls, min, max, step) }}{% endmacro %}
+{% macro sv(fd, name, label, options, cls='col-md-4', blank='— not set —') %}{{ f.select(name, label, options, fd.get(name) or '', cls, false, '', blank) }}{% endmacro %}
+
 <div class="page-head">
     <div>
         <h1 class="page-title">{{ 'Edit' if mode == 'edit' else 'Add' }} Device
             {% if mode == 'edit' and item %}<code class="code-ip ms-2">{{ item.hostname }}</code>{% endif %}</h1>
-        <p class="page-sub text-muted mb-0">Record hardware and ownership information.</p>
+        <p class="page-sub text-muted mb-0">Configuration item record — identification, lifecycle, placement and compliance.</p>
     </div>
     <a href="{{ url_for('devices') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
 </div>
@@ -18,48 +24,301 @@
     <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     <div class="row g-4">
         <div class="col-xl-8">
+            {# ------------------------------------------------------------------ #}
             <div class="card">
                 <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-pc-display me-2"></i>Basics</h5></div>
                 <div class="card-body">
                     <div class="row g-3">
                         {{ f.text('hostname', 'Hostname', form_data.get('hostname'), 'web-srv-01', true, 'col-md-6') }}
                         {{ f.text('fqdn', 'FQDN', form_data.get('fqdn'), 'web-srv-01.example.com', false, 'col-md-6') }}
-                        {{ f.select('status', 'Status', [('Active','Active'), ('Inactive','Inactive'), ('Maintenance','Maintenance')], form_data.get('status', 'Active'), 'col-md-3', true) }}
+                        {{ f.select('status', 'Operational Status', [('Active','Active'), ('Inactive','Inactive'), ('Maintenance','Maintenance')], form_data.get('status', 'Active'), 'col-md-3', true) }}
                         {{ f.text('role', 'Role', form_data.get('role'), 'Web Server', false, 'col-md-4') }}
                         {{ f.text('purpose', 'Purpose', form_data.get('purpose'), 'Customer portal', false, 'col-md-5') }}
                     </div>
                 </div>
             </div>
 
-            <div class="card mt-4">
-                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-cpu me-2"></i>Hardware</h5></div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {{ f.text('vendor', 'Vendor', form_data.get('vendor'), 'Dell', false, 'col-md-4') }}
-                        {{ f.text('device_model', 'Model', form_data.get('device_model'), 'PowerEdge R650', false, 'col-md-4') }}
-                        {{ f.text('serial_number', 'Serial Number', form_data.get('serial_number'), 'SN-12345', false, 'col-md-4') }}
-                        {{ f.text('operating_system', 'Operating System', form_data.get('operating_system'), 'Ubuntu 22.04', false, 'col-md-6') }}
-                        {{ f.text('firmware', 'Firmware', form_data.get('firmware'), 'v2.4.1', false, 'col-md-6') }}
-                        {{ f.text('datacenter', 'Datacenter', form_data.get('datacenter'), 'DC-East', false, 'col-md-4') }}
-                        {{ f.text('rack', 'Rack', form_data.get('rack'), 'A1', false, 'col-md-4') }}
-                        {{ f.text('room', 'Room', form_data.get('room'), 'Server Room 2', false, 'col-md-4') }}
-                        {{ f.text('location', 'Location', form_data.get('location'), 'Building 1', false, 'col-md-4') }}
+            {# ------------------------------------------------------------------ #}
+            <div class="accordion mt-4" id="cmdbAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secIdent">
+                            <i class="bi bi-upc-scan me-2"></i>Identification
+                        </button>
+                    </h2>
+                    <div id="secIdent" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ f.text('asset_tag', 'Asset Tag', form_data.get('asset_tag'), 'AT-100234', false, 'col-md-4', 'Unique key used by finance and audit reconciliation.') }}
+                                {{ f.text('inventory_id', 'Inventory ID', form_data.get('inventory_id'), 'INV-88213', false, 'col-md-4') }}
+                                {{ f.text('instance_id', 'Instance ID', form_data.get('instance_id'), 'i-0123456789abcdef0', false, 'col-md-4', 'Cloud / hypervisor instance identifier.') }}
+                                {{ f.text('barcode', 'Barcode', form_data.get('barcode'), 'BC-5512', false, 'col-md-4') }}
+                                {{ f.text('device_uuid', 'Device UUID', form_data.get('device_uuid'), '4c4c4544-0052-3510-8052-b7c04f503332', false, 'col-md-4') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secClass">
+                            <i class="bi bi-tags me-2"></i>Classification
+                        </button>
+                    </h2>
+                    <div id="secClass" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ sv(form_data, 'device_class', 'Device Class', cmdb_selects.device_class, 'col-md-4', '— not set —') }}
+                                {{ f.text('device_subtype', 'Sub Type', form_data.get('device_subtype'), 'Rack mount', false, 'col-md-4') }}
+                                {{ f.text('manufacturer', 'Manufacturer', form_data.get('manufacturer'), 'Dell', false, 'col-md-4') }}
+                                {{ f.text('part_number', 'Part Number', form_data.get('part_number'), 'SKU-400-A', false, 'col-md-4') }}
+                                {{ f.text('chassis_type', 'Chassis Type', form_data.get('chassis_type'), '1U Rack', false, 'col-md-4') }}
+                                {{ f.select('parent_device_id', 'Parent Device', parent_options, form_data.get('parent_device_id') or '', 'col-md-4', false, 'Host for virtual machines, enclosure for blades.') }}
+                                {{ f.checkbox('is_virtual', 'Virtual device', form_data.get('is_virtual'), 'col-md-4') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secLife">
+                            <i class="bi bi-arrow-repeat me-2"></i>Lifecycle &amp; Warranty
+                        </button>
+                    </h2>
+                    <div id="secLife" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ sv(form_data, 'lifecycle_status', 'Lifecycle Status', cmdb_selects.lifecycle_status, 'col-md-4') }}
+                                {{ dv(form_data, 'purchase_date', 'Purchase Date') }}
+                                {{ dv(form_data, 'install_date', 'Commissioned On') }}
+                                {{ dv(form_data, 'warranty_start', 'Warranty Start') }}
+                                {{ dv(form_data, 'warranty_end', 'Warranty End') }}
+                                {{ dv(form_data, 'decommission_date', 'Decommissioned On') }}
+                                {{ dv(form_data, 'last_audit_date', 'Last Audited') }}
+                                {{ dv(form_data, 'next_review_date', 'Next Review') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secSpec">
+                            <i class="bi bi-cpu me-2"></i>Hardware Specification
+                        </button>
+                    </h2>
+                    <div id="secSpec" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ f.text('vendor', 'Supplier / Vendor', form_data.get('vendor'), 'Dell', false, 'col-md-4') }}
+                                {{ f.text('device_model', 'Model', form_data.get('device_model'), 'PowerEdge R650', false, 'col-md-4') }}
+                                {{ f.text('serial_number', 'Serial Number', form_data.get('serial_number'), 'SN-12345', false, 'col-md-4') }}
+                                {{ f.text('operating_system', 'Operating System', form_data.get('operating_system'), 'Ubuntu 22.04', false, 'col-md-4') }}
+                                {{ f.text('os_version', 'OS Version', form_data.get('os_version'), '22.04.4 LTS', false, 'col-md-4') }}
+                                {{ f.text('bios_version', 'BIOS / UEFI Version', form_data.get('bios_version'), '2.19.0', false, 'col-md-4') }}
+                                {{ f.text('firmware', 'Firmware', form_data.get('firmware'), 'v2.4.1', false, 'col-md-4') }}
+                                {{ f.text('cpu_model', 'CPU Model', form_data.get('cpu_model'), 'Intel Xeon Silver 4310', false, 'col-md-4') }}
+                                {{ nv(form_data, 'cpu_count', 'CPU Cores', 'col-md-4', '0') }}
+                                {{ nv(form_data, 'memory_gb', 'Memory (GB)', 'col-md-4', '0') }}
+                                {{ nv(form_data, 'storage_gb', 'Storage (GB)', 'col-md-4', '0') }}
+                                {{ nv(form_data, 'power_draw_w', 'Power Draw (W)', 'col-md-4', '0') }}
+                                {{ nv(form_data, 'weight_kg', 'Weight (kg)', 'col-md-4', '0', '', '0.01') }}
+                                {{ f.text_list('mac_addresses', 'Device MAC Addresses', mac_values, 'AA:BB:CC:DD:EE:FF', 'col-md-8', 'Up to 20 addresses.') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secPlace">
+                            <i class="bi bi-geo-alt me-2"></i>Location &amp; Placement
+                        </button>
+                    </h2>
+                    <div id="secPlace" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ f.text('datacenter', 'Datacenter', form_data.get('datacenter'), 'DC-East', false, 'col-md-4') }}
+                                {{ f.text('site_code', 'Site Code', form_data.get('site_code'), 'SIT-AMS-01', false, 'col-md-4') }}
+                                {{ f.text('location', 'Location', form_data.get('location'), 'Building 1', false, 'col-md-4') }}
+                                {{ f.text('address', 'Street Address', form_data.get('address'), '1 Example Way', false, 'col-md-6') }}
+                                {{ f.text('city', 'City', form_data.get('city'), 'Amsterdam', false, 'col-md-3') }}
+                                {{ f.text('state_province', 'State / Province', form_data.get('state_province'), 'NH', false, 'col-md-3') }}
+                                {{ f.text('postal_code', 'Postal Code', form_data.get('postal_code'), '1011AB', false, 'col-md-3') }}
+                                {{ f.text('country', 'Country', form_data.get('country'), 'Netherlands', false, 'col-md-3') }}
+                                {{ f.text('floor', 'Floor', form_data.get('floor'), '3', false, 'col-md-3') }}
+                                {{ f.text('room', 'Room', form_data.get('room'), 'Server Room 2', false, 'col-md-3') }}
+                                {{ f.text('rack', 'Rack', form_data.get('rack'), 'A1', false, 'col-md-3') }}
+                                {{ nv(form_data, 'rack_position', 'Rack Position (U)', 'col-md-3', '1', '60') }}
+                                {{ nv(form_data, 'rack_units', 'Rack Units', 'col-md-3', '1', '60') }}
+                                {{ f.text('slot_position', 'Slot / Bay', form_data.get('slot_position'), 'Slot 3', false, 'col-md-3') }}
+                                {{ nv(form_data, 'latitude', 'Latitude', 'col-md-3', '-90', '90', '0.0000001') }}
+                                {{ nv(form_data, 'longitude', 'Longitude', 'col-md-3', '-180', '180', '0.0000001') }}
+                                {{ f.text('timezone', 'Timezone', form_data.get('timezone'), 'Europe/Amsterdam', false, 'col-md-3') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secOrg">
+                            <i class="bi bi-people me-2"></i>Ownership &amp; Organisation
+                        </button>
+                    </h2>
+                    <div id="secOrg" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ f.text('owner', 'Owner', form_data.get('owner'), 'Finance', false, 'col-md-4') }}
+                                {{ f.text('responsible_person', 'Responsible Person', form_data.get('responsible_person'), 'Jane Doe', false, 'col-md-4') }}
+                                {{ f.text('asset_custodian', 'Asset Custodian', form_data.get('asset_custodian'), 'Alex Smith', false, 'col-md-4') }}
+                                {{ f.text('department', 'Department', form_data.get('department'), 'IT Ops', false, 'col-md-4') }}
+                                {{ f.text('team', 'Team', form_data.get('team'), 'Platform', false, 'col-md-4') }}
+                                {{ f.text('business_unit', 'Business Unit', form_data.get('business_unit'), 'Digital Services', false, 'col-md-4') }}
+                                {{ f.text('cost_center', 'Cost Center', form_data.get('cost_center'), 'CC-4410', false, 'col-md-4') }}
+                                {{ f.text('managed_by', 'Managed By', form_data.get('managed_by'), 'Infrastructure Team', false, 'col-md-4') }}
+                                {{ f.text('approver', 'Change Approver', form_data.get('approver'), 'Priya Nair', false, 'col-md-4') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secFin">
+                            <i class="bi bi-cash-coin me-2"></i>Financial &amp; Contract
+                        </button>
+                    </h2>
+                    <div id="secFin" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ nv(form_data, 'purchase_cost', 'Purchase Cost', 'col-md-4', '0', '', '0.01') }}
+                                {{ f.text('currency', 'Currency', form_data.get('currency'), 'EUR', false, 'col-md-2', 'ISO 4217, e.g. EUR.') }}
+                                {{ f.text('po_number', 'PO Number', form_data.get('po_number'), 'PO-99213', false, 'col-md-3') }}
+                                {{ f.text('contract_number', 'Contract Number', form_data.get('contract_number'), 'CTR-4417', false, 'col-md-3') }}
+                                {{ f.text('supplier', 'Supplier', form_data.get('supplier'), 'Dell Technologies', false, 'col-md-4') }}
+                                {{ dv(form_data, 'lease_end', 'Lease Ends') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secNet">
+                            <i class="bi bi-diagram-3 me-2"></i>Network Identity
+                        </button>
+                    </h2>
+                    <div id="secNet" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ f.text('primary_ip', 'Primary IP', form_data.get('primary_ip'), '10.20.30.40', false, 'col-md-4') }}
+                                {{ f.text('management_ip', 'Management IP', form_data.get('management_ip'), '10.20.30.41', false, 'col-md-4') }}
+                                {{ f.text('network_segment', 'Network Segment', form_data.get('network_segment'), 'Core VLAN 10', false, 'col-md-4') }}
+                                {{ f.text('dns_domain', 'DNS Domain', form_data.get('dns_domain'), 'corp.example.com', false, 'col-md-4') }}
+                                {{ nv(form_data, 'port_count', 'Port Count', 'col-md-4', '0') }}
+                                {{ nv(form_data, 'uplink_speed_mbps', 'Uplink (Mbps)', 'col-md-4', '0') }}
+                            </div>
+                            <div class="form-text">Separate from the assigned IP addresses below, which are managed as first-class inventory records.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secSvc">
+                            <i class="bi bi-bricks me-2"></i>Service &amp; Resilience
+                        </button>
+                    </h2>
+                    <div id="secSvc" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ f.text('service_name', 'Service Name', form_data.get('service_name'), 'Customer Portal', false, 'col-md-4') }}
+                                {{ f.text('service_group', 'Service Group', form_data.get('service_group'), 'Digital Services', false, 'col-md-4') }}
+                                {{ f.text('application', 'Application', form_data.get('application'), 'Portal v4', false, 'col-md-4') }}
+                                {{ f.text('redundancy_group', 'Redundancy Group', form_data.get('redundancy_group'), 'RG-PORTAL', false, 'col-md-4') }}
+                                {{ f.text('cluster_name', 'Cluster', form_data.get('cluster_name'), 'cl-portal-01', false, 'col-md-4') }}
+                                {{ f.text('maintenance_window', 'Maintenance Window', form_data.get('maintenance_window'), 'Sun 01:00-03:00', false, 'col-md-4') }}
+                                {{ nv(form_data, 'rto_minutes', 'RTO (min)', 'col-md-3', '0') }}
+                                {{ nv(form_data, 'rpo_minutes', 'RPO (min)', 'col-md-3', '0') }}
+                                {{ f.text('support_ticket', 'Support Ticket', form_data.get('support_ticket'), 'INC-10241', false, 'col-md-3') }}
+                                {{ f.text('change_reference', 'Change Reference', form_data.get('change_reference'), 'CHG-88213', false, 'col-md-3') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secSec">
+                            <i class="bi bi-shield-check me-2"></i>Security, Compliance &amp; Operations
+                        </button>
+                    </h2>
+                    <div id="secSec" class="accordion-collapse collapse" data-bs-parent="#cmdbAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                {{ sv(form_data, 'criticality', 'Criticality', cmdb_selects.criticality, 'col-md-4') }}
+                                {{ sv(form_data, 'data_classification', 'Data Classification', cmdb_selects.data_classification, 'col-md-4') }}
+                                {{ sv(form_data, 'compliance_status', 'Compliance Status', cmdb_selects.compliance_status, 'col-md-4') }}
+                                {{ f.text('compliance_framework', 'Compliance Framework', form_data.get('compliance_framework'), 'ISO 27001', false, 'col-md-4') }}
+                                {{ sv(form_data, 'patch_status', 'Patch Status', cmdb_selects.patch_status, 'col-md-4') }}
+                                {{ dv(form_data, 'patch_due_date', 'Patch Due', 'col-md-4') }}
+                                {{ sv(form_data, 'antivirus_status', 'Antivirus', cmdb_selects.antivirus_status, 'col-md-4') }}
+                                {{ sv(form_data, 'backup_status', 'Backup Status', cmdb_selects.backup_status, 'col-md-4') }}
+                                {{ f.datetime_local('last_backup_date', 'Last Backup', form_data.get('last_backup_date')|dt if form_data.get('last_backup_date') else '') }}
+                                {{ sv(form_data, 'discovery_source', 'Discovery Source', cmdb_selects.discovery_source, 'col-md-4') }}
+                                {{ f.datetime_local('last_seen', 'Last Seen', form_data.get('last_seen')|dt if form_data.get('last_seen') else '') }}
+                                {{ f.datetime_local('last_cmdb_sync', 'Last CMDB Sync', form_data.get('last_cmdb_sync')|dt if form_data.get('last_cmdb_sync') else '') }}
+                                {{ f.checkbox('authorized_use', 'Authorised for use', form_data.get('authorized_use'), 'col-md-4') }}
+                                {{ f.checkbox('monitoring_enabled', 'Monitoring enabled', form_data.get('monitoring_enabled'), 'col-md-4') }}
+                                {{ f.text('monitoring_agent', 'Monitoring Agent', form_data.get('monitoring_agent'), 'zabbix-agent 7.0', false, 'col-md-4') }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {# ------------------------------------------------------------------ #}
             <div class="card mt-4">
-                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-people me-2"></i>Ownership</h5></div>
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-router me-2"></i>Assigned IP Addresses</h5>
+                    {% if mode == 'edit' and current_user.is_admin %}
+                    <a href="{{ url_for('ip_addresses_add') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg me-1"></i>Assign</a>
+                    {% endif %}
+                </div>
                 <div class="card-body">
-                    <div class="row g-3">
-                        {{ f.text('owner', 'Owner', form_data.get('owner'), 'Finance', false, 'col-md-4') }}
-                        {{ f.text('responsible_person', 'Responsible Person', form_data.get('responsible_person'), 'Jane Doe', false, 'col-md-4') }}
-                        {{ f.text('department', 'Department', form_data.get('department'), 'IT Ops', false, 'col-md-4') }}
-                        {{ f.text('team', 'Team', form_data.get('team'), 'Platform', false, 'col-md-4') }}
+                    {% if mode == 'edit' and item.ip_addresses %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr><th>IP Address</th><th>Interface</th><th>MAC Address(es)</th><th>Status</th><th class="text-end"></th></tr>
+                            </thead>
+                            <tbody>
+                                {% for ip in item.ip_addresses %}
+                                <tr>
+                                    <td><code class="code-ip">{{ ip.ip_address }}/{{ ip.subnet_prefix }}</code></td>
+                                    <td>{{ ip.interface_name or '-' }}</td>
+                                    <td class="font-monospace small">{{ ip.mac_addresses|join(', ') if ip.mac_addresses else '-' }}</td>
+                                    <td><span class="status-badge status-{{ ip.status|lower }}">{{ ip.status }}</span></td>
+                                    <td class="text-end">
+                                        {% if current_user.is_admin %}
+                                        <a href="{{ url_for('ip_addresses_edit', item_id=ip.id) }}" class="btn btn-outline-primary btn-sm" title="Edit"><i class="bi bi-pencil"></i></a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
+                    <div class="form-text">Change the assignment from the IP address form, or reassign it to another device there.</div>
+                    {% else %}
+                    <p class="text-muted mb-0">No IP addresses assigned yet. Use the IP address form and set its <em>Device</em> field to link one.</p>
+                    {% endif %}
                 </div>
             </div>
 
+            {# ------------------------------------------------------------------ #}
             <div class="card mt-4">
                 <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-sticky me-2"></i>Notes</h5></div>
                 <div class="card-body">
@@ -80,9 +339,11 @@
             <div class="card">
                 <div class="card-header"><h6 class="card-title mb-0"><i class="bi bi-lightbulb me-2"></i>Helpful tips</h6></div>
                 <ul class="list-group list-group-flush help-list">
-                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Use descriptive hostnames for easy identification.</li>
-                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Include the FQDN when present.</li>
-                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Document vendor/model/serial for lifecycle tracking.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Give every device an <strong>asset tag</strong> — it must be unique and is the key finance and audit reconcile on.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Expand the sections above to record lifecycle, warranty, placement, service and compliance detail.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Set <strong>Lifecycle Status</strong> to <em>Retired</em> or <em>Decommissioned</em> instead of deleting a device that is still on the books.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Point a virtual machine at its <strong>Parent Device</strong> to keep the hypervisor hierarchy readable.</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Assign IP addresses from the IP address form using the <em>Device</em> field.</li>
                 </ul>
             </div>
         </div>

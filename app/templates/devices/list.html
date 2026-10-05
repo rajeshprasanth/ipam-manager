@@ -12,6 +12,39 @@
     {% endif %}
 </div>
 
+<form method="GET" action="{{ url_for('devices') }}" class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label for="q" class="form-label mb-1">Search</label>
+                <input type="text" class="form-control" id="q" name="q" value="{{ q }}"
+                       placeholder="Hostname, FQDN, asset tag, serial, inventory, barcode, site…">
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label mb-1">Operational Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All</option>
+                    {% for value, text in statuses %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ text }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="lifecycle" class="form-label mb-1">Lifecycle Status</label>
+                <select class="form-select" id="lifecycle" name="lifecycle">
+                    <option value="">All</option>
+                    {% for value, text in lifecycles %}
+                    <option value="{{ value }}" {% if lifecycle_filter == value %}selected{% endif %}>{{ text }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-funnel"></i></button>
+            </div>
+        </div>
+    </div>
+</form>
+
 <div class="card">
     <div class="card-header"><h5 class="card-title mb-0">Devices</h5></div>
     <div class="card-body p-0">
@@ -21,11 +54,15 @@
                 <thead>
                     <tr>
                         <th>Hostname</th>
-                        <th>Device</th>
-                        <th>Role</th>
+                        <th>Asset Tag</th>
+                        <th>Class</th>
+                        <th>IP Addresses</th>
+                        <th>Hardware</th>
                         <th>Status</th>
+                        <th>Lifecycle</th>
+                        <th>Criticality</th>
+                        <th>Placement</th>
                         <th>Owner</th>
-                        <th>Location</th>
                         {% if current_user.is_admin %}<th class="text-end">Actions</th>{% endif %}
                     </tr>
                 </thead>
@@ -37,13 +74,42 @@
                             {% if device.fqdn %}<br><small class="text-muted">{{ device.fqdn }}</small>{% endif %}
                         </td>
                         <td>
-                            {% if device.vendor or device.device_model %}{{ device.vendor or '' }} {{ device.device_model or '' }}{% else %}-{% endif %}
-                            {% if device.operating_system %}<br><small class="text-muted">{{ device.operating_system }}</small>{% endif %}
+                            {% if device.asset_tag %}
+                            <code class="code-ip">{{ device.asset_tag }}</code>
+                            {% if device.serial_number %}<br><small class="text-muted">{{ device.serial_number }}</small>{% endif %}
+                            {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
-                        <td>{{ device.role or '-' }}</td>
+                        <td>
+                            {{ device.device_class or '—' }}
+                            {% if device.is_virtual %}<i class="bi bi-box text-info" title="Virtual device"></i>{% endif %}
+                            {% if device.device_subtype %}<br><small class="text-muted">{{ device.device_subtype }}</small>{% endif %}
+                        </td>
+                        <td>
+                            {% if device.ip_addresses %}
+                            {% for ip in device.ip_addresses %}
+                            <code class="code-ip">{{ ip.ip_address }}</code>{% if ip.interface_name %}<small class="text-muted"> ({{ ip.interface_name }})</small>{% endif %}{% if not loop.last %}<br>{% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.manufacturer or device.vendor or device.device_model %}{{ device.manufacturer or device.vendor or '' }} {{ device.device_model or '' }}{% else %}-{% endif %}
+                            {% if device.memory_gb %}<br><small class="text-muted">{{ device.memory_gb|comma }} GB{% if device.cpu_count %} / {{ device.cpu_count }} cores{% endif %}</small>{% endif %}
+                        </td>
                         <td><span class="status-badge status-{{ device.status|lower }}">{{ device.status }}</span></td>
-                        <td>{{ device.owner or '-' }}</td>
-                        <td>{{ device.location or '-' }}</td>
+                        <td><small>{{ device.lifecycle_status or '—' }}</small></td>
+                        <td>
+                            {% if device.criticality %}
+                            <span class="badge text-bg-{{ 'danger' if device.criticality == 'Critical' else 'warning' if device.criticality == 'High' else 'secondary' if device.criticality == 'Medium' else 'light text-dark' }}">{{ device.criticality }}</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if device.site_code or device.datacenter or device.rack %}
+                            {{ device.site_code or device.datacenter or '' }}{% if device.rack %} · Rack {{ device.rack }}{% if device.rack_position %}(U{{ device.rack_position }}){% endif %}{% endif %}
+                            {% elif device.location %}{{ device.location }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>{{ device.owner or device.department or '-' }}</td>
                         {% if current_user.is_admin %}
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
@@ -63,8 +129,13 @@
         {% else %}
         <div class="empty-state">
             <i class="bi bi-pc-display"></i>
+            {% if q or status_filter or lifecycle_filter %}
+            <p>No devices match the current filters.</p>
+            <a href="{{ url_for('devices') }}" class="btn btn-outline-secondary btn-sm">Clear filters</a>
+            {% else %}
             <p>No devices registered.</p>
             {% if current_user.is_admin %}<a href="{{ url_for('devices_add') }}" class="btn btn-primary btn-sm">Add your first device</a>{% endif %}
+            {% endif %}
         </div>
         {% endif %}
     </div>

@@ -257,6 +257,7 @@ a { text-decoration: none; }
 .mini-stat { padding: 16px 18px; height: 100%; }
 .mini-value { font-size: 1.4rem; font-weight: 800; }
 .mini-label { color: var(--muted); font-size: .8rem; }
+.mini-sub { color: var(--muted); font-size: .74rem; margin-top: 2px; }
 
 /* ------------------------------------------------------------------ */
 /* Tables & status                                                     */
@@ -303,6 +304,18 @@ a { text-decoration: none; }
 .role-development, .role-testing, .role-backup { background: #f1f5f9; color: #475569; }
 .network-foot { display: flex; align-items: center; margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; }
 
+/* compact label/value pairs on network cards */
+.network-facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: .8rem; }
+.network-facts dt { color: var(--muted); font-weight: 500; margin: 0; }
+.network-facts dd { margin: 0; color: var(--text); word-break: break-word; }
+.network-facts:empty { display: none; }
+
+/* lifecycle pills reused from .role-pill */
+.role-active { background: #d1fae5; color: #047857; }
+.role-planned { background: #e0f2fe; color: #0369a1; }
+.role-reserved { background: #ede9fe; color: #6d28d9; }
+.role-decommissioned { background: #fee2e2; color: #b91c1c; }
+
 /* empty state */
 .empty-state { text-align: center; padding: 52px 20px; color: var(--muted); }
 .empty-state i { font-size: 2.6rem; display: block; margin-bottom: 10px; color: #cbd5e1; }
@@ -328,6 +341,12 @@ a { text-decoration: none; }
 .input-group-text { border-radius: 10px 0 0 10px; background: #f8fafc; border-color: var(--border); color: var(--muted); }
 .help-list .list-group-item { border-color: #f1f5f9; font-size: .84rem; color: #475569; }
 .help-list i { margin-right: 6px; }
+
+/* repeatable fields (multiple MAC addresses, etc.) */
+.field-list-row .form-control { border-radius: 10px 0 0 10px; font-family: "SFMono-Regular", Consolas, monospace; }
+.field-list-row .btn { border-radius: 0 10px 10px 0; border-color: var(--border); }
+.field-list-row:last-of-type { margin-bottom: 0 !important; }
+[data-field-add] { font-size: .8rem; }
 
 /* buttons */
 .btn { border-radius: 10px; font-weight: 600; }
